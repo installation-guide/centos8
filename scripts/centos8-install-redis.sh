@@ -15,13 +15,13 @@ if [ $# -ne 1 ]; then
   echo "<envoy version>: 1.18.3, 1.19.0 ..."
   exit 1
 fi
-ENVOY_VERSION=$1
-ENVOY_HOME="$HOME/v$ENVOY_VERSION"
-ENVOY_CONF=$ENVOY_HOME/conf
-ENVOY_LOGS=$ENVOY_HOME/logs
-ENVOY_DATA=$ENVOY_HOME/data
-ENVOY_PLUGGIN=$ENVOY_HOME/plugins
-ENVOY_APP=$HOME/.func-e/versions/$ENVOY_VERSION/bin/envoy
+REDIS_VERSION=$1
+REDIS_HOME="$HOME/v$REDIS_VERSION"
+REDIS_CONF=$REDIS_HOME/conf
+REDIS_LOGS=$REDIS_HOME/logs
+REDIS_DATA=$REDIS_HOME/data
+REDIS_PLUGGIN=$REDIS_HOME/plugins
+REDIS_APP=$HOME/.func-e/versions/$REDIS_VERSION/bin/envoy
 
 SERVICE_NAME=envoy
 
@@ -31,20 +31,21 @@ if [ $? -ne 0 ]; then
   return 1
 fi
 
-## Create new folder if not exist
-[ ! -d $ENVOY_HOME ] && { mkdir -p $ENVOY_HOME; echo "create $ENVOY_HOME"; }
-[ ! -d $ENVOY_CONF ] && { mkdir -p $ENVOY_CONF; echo "create $ENVOY_CONF"; }
-[ ! -d $ENVOY_LOGS ] && { mkdir -p $ENVOY_LOGS; echo "create $ENVOY_LOGS"; }
-[ ! -d $ENVOY_DATA ] && { mkdir -p $ENVOY_DATA; echo "create $ENVOY_DATA"; }
-[ ! -d $ENVOY_PLUGGIN ] && { mkdir -p $ENVOY_PLUGGIN; echo "create $ENVOY_PLUGGIN"; }
-
-####
 ## install 'func-e' if not exist
 [ -f /usr/local/bin/func-e ] || { curl -L https://getenvoy.io/install.sh | sudo bash -s -- -b /usr/local/bin; }
-func-e use $ENVOY_VERSION
-if [ ! -f $ENVOY_APP ]; then
-  echo "envoy $ENVOY_VERSION was not installed"
-  echo "$ENVOY_APP"
+
+## Create new folder if not exist
+[ ! -d $REDIS_HOME ] && { mkdir -p $REDIS_HOME; echo "create $REDIS_HOME"; }
+[ ! -d $REDIS_CONF ] && { mkdir -p $REDIS_CONF; echo "create $REDIS_CONF"; }
+[ ! -d $REDIS_LOGS ] && { mkdir -p $REDIS_LOGS; echo "create $REDIS_LOGS"; }
+[ ! -d $REDIS_DATA ] && { mkdir -p $REDIS_DATA; echo "create $REDIS_DATA"; }
+[ ! -d $REDIS_PLUGGIN ] && { mkdir -p $REDIS_PLUGGIN; echo "create $REDIS_PLUGGIN"; }
+
+####
+func-e use $REDIS_VERSION
+if [ ! -f $REDIS_APP ]; then
+  echo "envoy $REDIS_VERSION was not installed"
+  echo "$REDIS_APP"
   echo "please correct version, ex: 1.19.0, 1.18.3 ..."
   exit 1
 fi
@@ -53,8 +54,8 @@ fi
 # Envoy Sample Config
 ########################
 IS_OVERWRITE='Y'
-if [ -f $ENVOY_CONF/envoy.yaml ]; then
-  read -p "do you overwrite '$ENVOY_CONF/envoy.yaml' [Y/N]?" overwrite
+if [ -f $REDIS_CONF/envoy.yaml ]; then
+  read -p "do you overwrite '$REDIS_CONF/envoy.yaml' [Y/N]?" overwrite
   if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
     IS_OVERWRITE='Y'
   else
@@ -63,7 +64,7 @@ if [ -f $ENVOY_CONF/envoy.yaml ]; then
 fi
 
 if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-tee $ENVOY_CONF/envoy.yaml > /dev/null <<'EOF'
+tee $REDIS_CONF/envoy.yaml > /dev/null <<'EOF'
 admin:
   address:
     socket_address: { address: 127.0.0.1, port_value: 9901 }
@@ -86,19 +87,19 @@ fi
 if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
 
 IFS='' read -r -d '' VAR <<"EOF"
-ENOVY_HOME_DIR=VAR_ENVOY_HOME
-\nENVOY_CONF_DIR=VAR_ENVOY_CONF
-\nENVOY_LOG_DIR=VAR_ENVOY_LOGS
-\nENVOY_DATA_DIR=VAR_ENVOY_DATA
-\nENVOY_CONFIG_FILE=VAR_ENVOY_CONF/envoy.yaml
-\nENVOY_LOGGING_ACCESS_FILE=VAR_ENVOY_LOG_DIR/envoy_main.log
+ENOVY_HOME_DIR=VAR_REDIS_HOME
+\nREDIS_CONF_DIR=VAR_REDIS_CONF
+\nREDIS_LOG_DIR=VAR_REDIS_LOGS
+\nREDIS_DATA_DIR=VAR_REDIS_DATA
+\nREDIS_CONFIG_FILE=VAR_REDIS_CONF/envoy.yaml
+\nREDIS_LOGGING_ACCESS_FILE=VAR_REDIS_LOG_DIR/REDIS_main.log
 EOF
 
-  VAR=${VAR//VAR_ENVOY_HOME/${ENVOY_HOME}}
-  VAR=${VAR//VAR_ENVOY_CONF/${ENVOY_CONF}}
-  VAR=${VAR//VAR_ENVOY_LOGS/${ENVOY_LOGS}}
-  VAR=${VAR//VAR_ENVOY_DATA/${ENVOY_DATA}}
-  VAR=${VAR//VAR_ENVOY_LOG_DIR/${ENVOY_LOGS}}
+  VAR=${VAR//VAR_REDIS_HOME/${REDIS_HOME}}
+  VAR=${VAR//VAR_REDIS_CONF/${REDIS_CONF}}
+  VAR=${VAR//VAR_REDIS_LOGS/${REDIS_LOGS}}
+  VAR=${VAR//VAR_REDIS_DATA/${REDIS_DATA}}
+  VAR=${VAR//VAR_REDIS_LOG_DIR/${REDIS_LOGS}}
   echo "> /etc/sysconfig/envoy"
   echo -e $VAR | sudo tee /etc/sysconfig/envoy > /dev/null
 
@@ -128,22 +129,22 @@ IFS='' read -r -d '' VAR <<"EOF"
 \nRequires=network.target remote-fs.target
 \nAfter=network.target remote-fs.target
 \nConditionPathExists=$ENOVY_HOME_DIR
-\nConditionPathExists=$ENVOY_LOG_DIR
-\nConditionPathExists=$ENVOY_DATA_DIR
+\nConditionPathExists=$REDIS_LOG_DIR
+\nConditionPathExists=$REDIS_DATA_DIR
 \n
 \n[Service]
 \nType=simple
 \nUser=root
 \nGroup=envoy
 \nEnvironmentFile=/etc/sysconfig/envoy
-\nExecStart=VAR_ENVOY_APP -c $ENVOY_CONFIG_FILE --log-path $ENVOY_LOGGING_ACCESS_FILE
+\nExecStart=VAR_REDIS_APP -c $REDIS_CONFIG_FILE --log-path $REDIS_LOGGING_ACCESS_FILE
 \n#Restart=on-failure
-\nExecStartPre=/usr/bin/touch $ENVOY_LOGGING_ACCESS_FILE
+\nExecStartPre=/usr/bin/touch $REDIS_LOGGING_ACCESS_FILE
 \n[Install]
 \nWantedBy=multi-user.target
 EOF
 
-  VAR=${VAR//VAR_ENVOY_APP/${ENVOY_APP}}
+  VAR=${VAR//VAR_REDIS_APP/${REDIS_APP}}
   echo "> /etc/systemd/system/$SERVICE_NAME.service"
   echo -e $VAR | sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null
 
