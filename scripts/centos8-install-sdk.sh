@@ -32,11 +32,17 @@ SDK_CONFIG_FILE=$1
 user_check_sudo
 if [ $? -ne 0 ]; then
   echo "please login user with sudo permission"
-  return 1
+  exit 1
 fi
 
 line_start=$1
 filename=$2
+
+if [ ! -f $filename ]; then
+  echo "file $filename is not exist"
+  exit 1
+fi
+
 I=0
 while IFS= read -r line; do
   if [ $((I++)) -lt $line_start ]; then
@@ -48,7 +54,9 @@ while IFS= read -r line; do
     sdk_version=${fields[1]}
     case $sdk_name in
       $SDK_GCC)
-        sudo dnf install -y gcc gcc-c++ cmake
+        sudo dnf install -y gcc
+        sudo dnf install -y gcc-c++
+        sudo dnf install -y cmake
         ;;
       $SDK_OPEN_JDK)
         export SETUP_PATH=$HOME/setups; \
@@ -59,7 +67,7 @@ while IFS= read -r line; do
         TEMP="/tmp/jdk-${PACKAGE_VERSION}"; \
         OUTPUT="/opt/open-jdk-${PACKAGE_VERSION}"; \
         COMMAND_TYPE="tar-extract"; \
-        $SETUP_PATH/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
+        $SCRIPT_DIR/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
         ;;
       $SDK_ORACLE_JDK)
         export SETUP_PATH=$HOME/setups; \
@@ -70,8 +78,7 @@ while IFS= read -r line; do
         TEMP="/tmp/jdk-${PACKAGE_VERSION}"; \
         OUTPUT="/opt/oracle-jdk-${PACKAGE_VERSION}"; \
         COMMAND_TYPE="tar-extract"; \
-        $SETUP_PATH/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
-
+        $SCRIPT_DIR/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
         ;;
       $SDK_VERTX)
         export SETUP_PATH=$HOME/setups; \
@@ -82,7 +89,7 @@ while IFS= read -r line; do
         TEMP="/tmp/vertx"; \
         OUTPUT="/opt/vertx-${PACKAGE_VERSION}"; \
         COMMAND_TYPE="tar-extract"; \
-        $SETUP_PATH/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
+        $SCRIPT_DIR/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
         ;;
       $SDK_GOLANG)
         export SETUP_PATH=$HOME/setups; \
@@ -93,7 +100,7 @@ while IFS= read -r line; do
         TEMP="/tmp/go"; \
         OUTPUT="/opt/go/sdk-${PACKAGE_VERSION}"; \
         COMMAND_TYPE="tar-extract"; \
-        $SETUP_PATH/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
+        $SCRIPT_DIR/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
         ;;
       $SDK_NODEJS)
         export SETUP_PATH=$HOME/setups; \
@@ -104,7 +111,7 @@ while IFS= read -r line; do
         TEMP="/tmp/node-${PACKAGE_VERSION}-linux-x64"; \
         OUTPUT="/opt/node/nodejs-${PACKAGE_VERSION}"; \
         COMMAND_TYPE="tar-extract"; \
-        $SETUP_PATH/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
+        $SCRIPT_DIR/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
         ;;
       $SDK_MINICONDA3)
         SETUP_PATH=$HOME/setups; \
@@ -115,14 +122,12 @@ while IFS= read -r line; do
         TEMP="null"; \
         OUTPUT="/opt/Miniconda3/conda-${PACKAGE_VERSION}"; \
         COMMAND_TYPE="miniconda3"; \
-        $SETUP_PATH/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
+        $SCRIPT_DIR/centos8-install-url.sh $PACKAGE_NAME $PACKAGE_PATH $PACKAGE_URL $TEMP $OUTPUT $COMMAND_TYPE
         ;;
       *)
       echo "not supported: $sdk_name, $sdk_version"
         ;;
       esac
-    #echo "[$I] $line"
-    #echo "[$I] ${fields[0]} - ${fields[1]} - ${fields[2]} - ${fields[3]}"
   fi
 done < "$filename"
 
