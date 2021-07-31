@@ -1,15 +1,11 @@
 #!/usr/bin/bash
-SETUP_PATH=$HOME/setups
-[ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "just created $SETUP_PATH"; }
 
-if [ ! -f "$SETUP_PATH/centos8-common.sh" ]; then
-  echo "not existed $SETUP_PATH/centos8-common.sh"
-  exit 1
-fi
 ###############
 # Load common
 ###############
-source "$SETUP_PATH/centos8-common.sh"
+SCRIPT_DIR=$(dirname $0)
+source "$SCRIPT_DIR/centos8-common.sh"
+
 
 ## by pass 4 first line
 START_LINE=4
