@@ -17,9 +17,9 @@ SDK_MINICONDA3='miniconda3'
 ###############
 # Execute
 ###############
-if [ $# -ne 1 ]; then
+if [ $# -ne 2 ]; then
   echo "$0: invalid input parameters ($#)"
-  echo "Usage: $0 <sdk config file>"
+  echo "Usage: $0 <line start> <sdk config file>"
   echo "Format File:"
   echo "   <sdk name>:<version>"
   echo "SDK Supported: $SDK_GCC, $SDK_OPEN_JDK, $SDK_ORACLE_JDK, $SDK_VERTX, $SDK_GOLANG, $SDK_NODEJS, $SDK_MINICONDA3"
@@ -125,3 +125,4 @@ while IFS= read -r line; do
     #echo "[$I] ${fields[0]} - ${fields[1]} - ${fields[2]} - ${fields[3]}"
   fi
 done < "$filename"
+
