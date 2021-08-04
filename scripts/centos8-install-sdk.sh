@@ -57,6 +57,7 @@ while IFS= read -r line; do
         sudo dnf install -y gcc
         sudo dnf install -y gcc-c++
         sudo dnf install -y cmake
+        sudo dnf groupinstall -y 'Development Tools'
         ;;
       $SDK_OPEN_JDK)
         export SETUP_PATH=$HOME/setups; \

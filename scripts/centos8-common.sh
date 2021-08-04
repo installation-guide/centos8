@@ -137,7 +137,7 @@ install_package_from_url() {
   fi
   
   if [ $# -ne 6 ]; then
-    echo "${FUNCNAME}($@) - args $#: invalid input param, must be 2 param"
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
     echo "${FUNCNAME} <package_name> <package_path> <package_url> <temp> <output> <command_type>"
     return 1
   fi
@@ -148,7 +148,7 @@ install_package_from_url() {
   temp=$4
   output=$5
   command_type=$6
-  echo "install_package_from_url()"
+  echo "${FUNCNAME}($@)"
   echo "Package name = $package_name"
   echo "Package path = $package_path"
   echo "Package url = $package_url"
@@ -186,3 +186,141 @@ install_package_from_url() {
     echo "$package_path is not existed"
   fi
 }
+
+download_and_extract_package_from_url() {
+  if [ $# -ne 4 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
+    echo "${FUNCNAME} <package_path> <package_url> <output> <command_type>"
+    return 1
+  fi
+  echo "${FUNCNAME}($@)"
+  package_path=$1
+  package_url=$2
+  output=$3
+  command_type=$4
+  if [[ ! -f $package_path && $package_url != "null" ]]; then
+    echo "Not existed $package_path, download Package"
+    curl -L $package_url --output $package_path
+  fi
+  
+  if [ -f $package_path ]; then
+    case $command_type in
+      tar-extract)
+        tar -xvf $package_path -C $output
+        ;;
+      *)
+        echo "Sorry, I don't understand command_type $command_type"
+        ;;
+      esac
+  fi
+}
+
+install_source_from_url_with_sudo() {
+  if [ $# -lt 4 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
+    echo "${FUNCNAME} <package_path> <package_url> <package prefix>"
+    return 1
+  fi
+  echo "${FUNCNAME}($@)"
+  command_type=$1
+  package_path=$2
+  package_url=$3
+  package_source=$4
+  package_prefix=$5
+  
+  if [[ ! -f $package_path && $package_url != "null" ]]; then
+    echo "Not existed $package_path, download Package"
+    curl -L $package_url --output $package_path
+  fi
+  if [ -f $package_path ]; then
+    TEMP_BASEDIR=$(dirname $package_source);
+    [ ! -d $TEMP_BASEDIR ] && { mkdir -p $TEMP_BASEDIR; echo "just created $TEMP_BASEDIR";}
+    case $command_type in
+      tar-extract)
+        tar -xvf $package_path -C $TEMP_BASEDIR
+        ;;
+      *)
+        echo "Sorry, I don't understand command_type $command_type"
+        ;;
+      esac
+  fi
+  
+  if [ -d $package_source ]; then
+    echo "Installing $package_name"
+    user_check_sudo
+    if [ $? -eq 0 ]; then
+      cd $package_source && make -j$(nproc) &&  sudo make install 
+    fi
+  fi
+}
+
+copy_file_from_to() {
+  if [ $# -ne 2 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
+    echo "${FUNCNAME} <source file> <destination path>"
+    return 1
+  fi
+  SOURCE_FILE=$1
+  TARGET_PATH=$2
+  if [ -f $SOURCE_FILE ]; then
+    echo "copy $SOURCE_FILE to $TARGET_PATH"
+    cp $SOURCE_FILE $TARGET_PATH
+    return 0
+  else 
+    echo "Source file ($SOURCE_FILE) is not exist"
+    return 1
+  fi
+}
+
+##########
+## is_overwrite_file()
+## return 
+##   Y - yes overwrite, N - no overwrite
+##   E - error
+is_overwrite_file() {
+  local IS_OVERWRITE='E'
+  if [ $# -ne 1 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
+    echo "${FUNCNAME} <source file>"
+    echo $IS_OVERWRITE
+    return 1
+  fi
+  source_file=$1
+  if [ -f $source_file ]; then
+    read -p "do you overwrite '$source_file' [Y/N]?" overwrite
+    if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
+      IS_OVERWRITE='Y'
+    else
+      IS_OVERWRITE='N'
+    fi
+  else 
+    IS_OVERWRITE='Y'
+  fi
+  echo $IS_OVERWRITE
+  return 0
+}
+
+is_overwrite_file_with_sudo() {
+  local IS_OVERWRITE='E'
+  if [ $# -ne 1 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
+    echo "${FUNCNAME} <source file>"
+    echo $IS_OVERWRITE
+    return 1
+  fi
+  source_file=$1
+  sudo test -f $source_file
+  if [ $? -eq 0 ]; then
+    read -p "do you overwrite '$source_file' [Y/N]?" overwrite
+    if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
+      IS_OVERWRITE='Y'
+    else
+      IS_OVERWRITE='N'
+    fi
+  else 
+    IS_OVERWRITE='Y'
+  fi
+  echo $IS_OVERWRITE
+  return 0
+}
+
