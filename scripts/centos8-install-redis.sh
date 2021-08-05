@@ -49,40 +49,38 @@ REDIS_SRC_URL="https://download.redis.io/releases/$REDIS_SRC_FILE"
 REDIS_SRC_PATH="$SETUP_PATH/redis-$REDIS_VERSION"
 [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
 
-is_overwrite=$(is_overwrite_file $REDIS_SERVER)
-if [[ $is_overwrite != "Y" && $is_overwrite != "y" ]]; then
-  echo "Redis Server's existed in $REDIS_SERVER"
-  exit 1
-fi
-
 ## check process running
 pgrep -x redis-server >/dev/null && { echo "redis-server is Running, please stop service before re-install"; exit; }
 
-if [ ! -f $SETUP_PATH/$REDIS_SRC_FILE ]; then
-  ## param: redis path,redis url, output path, command type
-  download_and_extract_package_from_url $SETUP_PATH/$REDIS_SRC_FILE $REDIS_SRC_URL $SETUP_PATH "tar-extract"
-fi
 
-[ ! -d $REDIS_SRC_PATH ] && { echo "Redis source path not exist"; exit 1; }
+is_overwrite=$(is_overwrite_file $REDIS_SERVER)
+if [[ $is_overwrite == "Y" && $is_overwrite == "y" ]]; then
+  echo "Redis Server's existed in $REDIS_SERVER"
+  if [ ! -f $SETUP_PATH/$REDIS_SRC_FILE ]; then
+    ## param: redis path,redis url, output path, command type
+    download_and_extract_package_from_url $SETUP_PATH/$REDIS_SRC_FILE $REDIS_SRC_URL $SETUP_PATH "tar-extract"
+  fi
 
-echo "Starting install Redis from source: $REDIS_SRC_PATH"
+  [ ! -d $REDIS_SRC_PATH ] && { echo "Redis source path not exist"; exit 1; }
 
-cd $REDIS_SRC_PATH && make -j$(nproc)
+  echo "Starting install Redis from source: $REDIS_SRC_PATH"
 
-copy_file_from_to $REDIS_SRC_PATH/src/redis-cli $REDIS_BIN/redis-cli
-copy_file_from_to $REDIS_SRC_PATH/src/redis-check-aof $REDIS_BIN
-copy_file_from_to $REDIS_SRC_PATH/src/redis-sentinel $REDIS_BIN
-copy_file_from_to $REDIS_SRC_PATH/src/redis-server $REDIS_BIN
-copy_file_from_to $REDIS_SRC_PATH/src/redis-benchmark $REDIS_BIN
-copy_file_from_to $REDIS_SRC_PATH/redis.conf $REDIS_CONF
-copy_file_from_to $REDIS_SRC_PATH/sentinel.conf $REDIS_CONF
+  cd $REDIS_SRC_PATH && make -j$(nproc)
 
-###################################
-# Sysconfig Redis
-###################################
-is_overwrite=$(is_overwrite_file_with_sudo '/etc/sysconfig/$SERVICE_NAME')
-echo "Sysconfig: $is_overwrite"
-if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  copy_file_from_to $REDIS_SRC_PATH/src/redis-cli $REDIS_BIN/redis-cli
+  copy_file_from_to $REDIS_SRC_PATH/src/redis-check-aof $REDIS_BIN
+  copy_file_from_to $REDIS_SRC_PATH/src/redis-sentinel $REDIS_BIN
+  copy_file_from_to $REDIS_SRC_PATH/src/redis-server $REDIS_BIN
+  copy_file_from_to $REDIS_SRC_PATH/src/redis-benchmark $REDIS_BIN
+  copy_file_from_to $REDIS_SRC_PATH/redis.conf $REDIS_CONF
+  copy_file_from_to $REDIS_SRC_PATH/sentinel.conf $REDIS_CONF
+
+  ###################################
+  # Sysconfig Redis
+  ###################################
+  is_overwrite=$(is_overwrite_file_with_sudo '/etc/sysconfig/$SERVICE_NAME')
+  echo "Sysconfig: $is_overwrite"
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
 
 IFS='' read -r -d '' VAR <<"EOF"
 REDISCLI_AUTH=VAR_REDIS_AUTH
@@ -174,6 +172,10 @@ EOF
   echo -e $VAR | sudo tee /etc/sudoers.d/$SERVICE_NAME  > /dev/null
 fi
 
+fi
+
+
+
 
 ###################################
 # Redis Module Officially
@@ -203,9 +205,16 @@ if [ ${#REDIS_MODULE_SEARCH} -gt 0 ]; then
   is_overwrite=$(is_overwrite_file $REDIS_MODULE_LIB)
   if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
     [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
-    [ ! -d $REDIS_MODULE_SRC ] && { mkdir -p $REDIS_MODULE_SRC;git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; }
-    
+    ## Download source
+    [ ! -d $REDIS_MODULE_SRC ] && { \
+        mkdir -p $REDIS_MODULE_SRC; \
+        [ $REDIS_MODULE_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+          && { git clone --recursive $REDIS_MODULE_GIT_URL $REDIS_MODULE_SRC; } \
+          || { git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; } \
+      }
+    ## buil source
     cd $REDIS_MODULE_SRC && make -j$(nproc)
+    ##
     if [ -f $REDIS_MODULE_SRC/build/redisearch.so ]; then
       [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
       cp $REDIS_MODULE_SRC/build/redisearch.so $$REDIS_MODULE_LIB
@@ -229,9 +238,16 @@ if [ ${#REDIS_MODULE_JSON} -gt 0 ]; then
   is_overwrite=$(is_overwrite_file $REDIS_MODULE_LIB)
   if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
     [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
-    [ ! -d $REDIS_MODULE_SRC ] && { mkdir -p $REDIS_MODULE_SRC;git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; }
+    ## Download source
+    [ ! -d $REDIS_MODULE_SRC ] && { \
+        mkdir -p $REDIS_MODULE_SRC; \
+        [ $REDIS_MODULE_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+          && { git clone --recursive $REDIS_MODULE_GIT_URL $REDIS_MODULE_SRC; } \
+          || { git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; } \
+      }
+    ## buil source
     cd $REDIS_MODULE_SRC && make -j$(nproc)
-
+    ##
     if [ -f $REDIS_MODULE_SRC/src/rejson.so ]; then
       [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
       cp $REDIS_MODULE_SRC/src/rejson.so $REDIS_MODULE_LIB
@@ -253,9 +269,16 @@ if [ ${#REDIS_MODULE_TIMESERIES} -gt 0 ]; then
   is_overwrite=$(is_overwrite_file $REDIS_MODULE_LIB)
   if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
     [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
-    [ ! -d $REDIS_MODULE_SRC ] && { mkdir -p $REDIS_MODULE_SRC;git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; }
+    ## Download source
+    [ ! -d $REDIS_MODULE_SRC ] && { \
+        mkdir -p $REDIS_MODULE_SRC; \
+        [ $REDIS_MODULE_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+          && { git clone --recursive $REDIS_MODULE_GIT_URL $REDIS_MODULE_SRC; } \
+          || { git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; } \
+      }
+    ## buil source
     cd $REDIS_MODULE_SRC && make -j$(nproc)
-
+    ##
     if [ -f $REDIS_MODULE_SRC//bin/linux-x64-release/redistimeseries.so ]; then
       [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
       cp $REDIS_MODULE_SRC/bin/linux-x64-release/redistimeseries.so $REDIS_MODULE_LIB
@@ -289,8 +312,15 @@ if [ ${#REDIS_MODULE_GRAPH} -gt 0 ]; then
   is_overwrite=$(is_overwrite_file $REDIS_MODULE_LIB)
   if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
     [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
-    [ ! -d $REDIS_MODULE_SRC ] && { mkdir -p $REDIS_MODULE_SRC;git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; }
-    cd $REDIS_MODULE_SRC && make -j$(nproc)
+    ## Download source
+    [ ! -d $REDIS_MODULE_SRC ] && { \
+        mkdir -p $REDIS_MODULE_SRC; \
+        [ $REDIS_MODULE_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+          && { git clone --recursive $REDIS_MODULE_GIT_URL $REDIS_MODULE_SRC; } \
+          || { git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; } \
+      }
+    ## buil source
+    cd $REDIS_MODULE_SRC && make
 
     if [ -f $REDIS_MODULE_SRC/src/redisgraph.so ]; then
       [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
@@ -304,6 +334,34 @@ fi
 
 if [ ${#REDIS_MODULE_AI} -gt 0 ]; then
   echo "Installing Module RedisAI version $REDIS_MODULE_AI"
+  SETUP_PATH=$HOME/setups
+  REDIS_MODULE_GIT_URL="https://github.com/RedisAI/RedisAI.git"
+  REDIS_MODULE_GIT_VERSION="v$REDIS_MODULE_AI"
+  REDIS_MODULE_SRC="$SETUP_PATH/RedisAI-$REDIS_MODULE_AI"
+  REDIS_MODULE_PATH=$REDIS_PLUGGINS/rai
+  REDIS_MODULE_LIB=$REDIS_MODULE_PATH/install-cpu-$REDIS_MODULE_AI/redisai.so
+  is_overwrite=$(is_overwrite_file $REDIS_MODULE_LIB)
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
+    ## Download source
+    [ ! -d $REDIS_MODULE_SRC ] && { \
+        mkdir -p $REDIS_MODULE_SRC; \
+        [ $REDIS_MODULE_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+          && { git clone --recursive $REDIS_MODULE_GIT_URL $REDIS_MODULE_SRC; } \
+          || { git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; } \
+      }
+    ## buil source
+    cd $REDIS_MODULE_SRC && $REDIS_MODULE_SRC/get_deps.sh cpu && ALL=1 make -C opt clean build
+
+    if [ -f $REDIS_MODULE_SRC/bin/linux-x64-release/install-cpu/redisai.so ]; then
+      [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
+      cp -R $REDIS_MODULE_SRC/bin/linux-x64-release/install-cpu $REDIS_MODULE_PATH/install-cpu-${REDIS_MODULE_AI}
+      [ -f $REDIS_PLUGGINS/redisai.so ] && { rm -f $REDIS_PLUGGINS/redisai.so; }
+      ln -s $REDIS_MODULE_LIB $REDIS_PLUGGINS/redisai.so
+      echo "Installed $(ls -lt $REDIS_PLUGGINS/redisai.so)";
+    fi
+  fi
+
 fi
 
 if [ ${#REDIS_MODULE_GEAR} -gt 0 ]; then

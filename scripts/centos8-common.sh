@@ -4,6 +4,7 @@
 CONST_AS_ROOT=0
 CONST_AS_NON_ROOT=1
 
+CONST_VERSION_LATEST="latest"
 
 # Define a variable map
 GROUP_TYPE_SYSTEM="system"
