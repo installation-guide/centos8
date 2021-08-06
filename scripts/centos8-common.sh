@@ -288,7 +288,7 @@ is_overwrite_file() {
   fi
   source_file=$1
   if [ -f $source_file ]; then
-    read -p "do you overwrite '$source_file' [Y/N]?" overwrite
+    read -p "do you overwrite '$source_file' [Y/N]? " overwrite
     if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
       IS_OVERWRITE='Y'
     else
@@ -312,7 +312,7 @@ is_overwrite_file_with_sudo() {
   source_file=$1
   sudo test -f $source_file
   if [ $? -eq 0 ]; then
-    read -p "do you overwrite '$source_file' [Y/N]?" overwrite
+    read -p "do you overwrite '$source_file' [Y/N]? " overwrite
     if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
       IS_OVERWRITE='Y'
     else

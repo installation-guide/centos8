@@ -54,11 +54,11 @@ pgrep -x redis-server >/dev/null && { echo "redis-server is Running, please stop
 
 
 is_overwrite=$(is_overwrite_file $REDIS_SERVER)
-if [[ $is_overwrite == "Y" && $is_overwrite == "y" ]]; then
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   echo "Redis Server's existed in $REDIS_SERVER"
-  if [ ! -f $SETUP_PATH/$REDIS_SRC_FILE ]; then
+  if [ ! -f $REDIS_SRC_PATH ]; then
     ## param: redis path,redis url, output path, command type
-    download_and_extract_package_from_url $SETUP_PATH/$REDIS_SRC_FILE $REDIS_SRC_URL $SETUP_PATH "tar-extract"
+    download_and_extract_package_from_url $SETUP_PATH/$REDIS_SRC_FILE $REDIS_SRC_URL $REDIS_SRC_PATH "tar-extract"
   fi
 
   [ ! -d $REDIS_SRC_PATH ] && { echo "Redis source path not exist"; exit 1; }
@@ -78,99 +78,61 @@ if [[ $is_overwrite == "Y" && $is_overwrite == "y" ]]; then
   ###################################
   # Sysconfig Redis
   ###################################
-  is_overwrite=$(is_overwrite_file_with_sudo '/etc/sysconfig/$SERVICE_NAME')
-  echo "Sysconfig: $is_overwrite"
+  is_overwrite=$(is_overwrite_file_with_sudo /etc/sysconfig/$SERVICE_NAME)
   if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    SYSCONFIG_PATH=$REDIS_SRC_PATH/etc/sysconfig
+    [ ! -d $SYSCONFIG_PATH ] && { mkdir -p $SYSCONFIG_PATH; echo "create new $SYSCONFIG_PATH"; }
+    
+    REDIS_AUTH=$REDIS_AUTH \
+      REDIS_PORT=$REDIS_PORT \
+      REDIS_EXPORTER_PORT=$REDIS_EXPORTER_PORT \
+      REDIS_HTTP_PROXY=$REDIS_HTTP_PROXY \
+      REDIS_HTTPS_PROXY=$REDIS_HTTPS_PROXY \
+      REDIS_NO_PROXY=$REDIS_NO_PROXY \
+      envsubst< $SCRIPT_DIR/redis/redis.sysconfig >  $SYSCONFIG_PATH/$SERVICE_NAME
+      
+    echo "> /etc/sysconfig/$SERVICE_NAME"
+    #sudo cp $SYSCONFIG_PATH/$SERVICE_NAME /etc/sysconfig/$SERVICE_NAME
+  fi
 
-IFS='' read -r -d '' VAR <<"EOF"
-REDISCLI_AUTH=VAR_REDIS_AUTH
-\nEXPORTER_REDIS_ADDR=redis://localhost:VAR_REDIS_PORT
-\nEXPORTER_REDIS_NAMESPACE=redis
-\nEXPORTER_REDIS_LOG_FORMAT=txt
-\nEXPORTER_LISTEN_ADDRESS=:VAR_REDIS_EXPORTER_PORT
-\nHTTP_PROXY=VAR_REDIS_HTTP_PROXY
-\nHTTPS_PROXY=VAR_REDIS_HTTPS_PROXY
-\nNO_PROXY=VAR_REDIS_NO_PROXY
-EOF
+  ###################################
+  # SystemD Redis
+  ###################################
+  is_overwrite=$(is_overwrite_file_with_sudo /etc/systemd/system/$SERVICE_NAME.service)
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    ##
+    SYSTEMD_PATH=$REDIS_SRC_PATH/etc/systemd/system
+    [ ! -d $SYSTEMD_PATH ] && { mkdir -p $SYSTEMD_PATH; echo "create new $SYSTEMD_PATH"; }
+    ###
+    REDIS_SERVER=$REDIS_SERVER \
+    REDIS_CONF_FILE=$REDIS_CONF_FILE \
+    REDIS_HOME=$REDIS_HOME \
+    REDIS_RUN=$REDIS_RUN \
+    REDIS_DATA=$REDIS_DATA \
+    REDIS_LOGS=$REDIS_LOGS \
+      envsubst< $SCRIPT_DIR/redis/redis.service >  "$SYSTEMD_PATH/$SERVICE_NAME.service"
 
-  VAR=${VAR//VAR_REDIS_AUTH/${REDIS_AUTH}}
-  VAR=${VAR//VAR_REDIS_PORT/${REDIS_PORT}}
-  VAR=${VAR//VAR_REDIS_EXPORTER_PORT/${REDIS_EXPORTER_PORT}}
-  VAR=${VAR//VAR_ENVOY_DATA/${ENVOY_DATA}}
-  VAR=${VAR//VAR_REDIS_HTTP_PROXY/${REDIS_HTTP_PROXY}}
-  VAR=${VAR//VAR_REDIS_HTTPS_PROXY/${REDIS_HTTPS_PROXY}}
-  VAR=${VAR//VAR_REDIS_NO_PROXY/${REDIS_NO_PROXY}}
-  echo "> /etc/sysconfig/redis"
-  echo -e $VAR | sudo tee /etc/sysconfig/$SERVICE_NAME > /dev/null
-  #echo $(cat < /etc/sysconfig/redis)
-fi
+    echo "> /etc/systemd/system/$SERVICE_NAME.service"
+    sudo cp $SYSTEMD_PATH/$SERVICE_NAME.service /etc/systemd/system/$SERVICE_NAME.service
 
-###################################
-# SystemD Redis
-###################################
-is_overwrite=$(is_overwrite_file_with_sudo '/etc/systemd/system/$SERVICE_NAME.service')
-echo "systemd: $is_overwrite"
-if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    echo "> Enable $SERVICE_NAME.service"
+    sudo systemctl enable $SERVICE_NAME.service
+  fi
 
-REDIS_SERVER=$REDIS_HOME/bin/redis-server
-REDIS_CONF_FILE=$REDIS_HOME/conf/redis.conf
-
-
-IFS='' read -r -d '' VAR <<"EOF"
-[Unit]
-\nDescription=Redis data structure server
-\nAfter=rsyslog.service network.target remote-fs.target nss-lookup.target
-\n
-\n[Service]
-\nEnvironmentFile=/etc/sysconfig/redis
-\nExecStart=VAR_REDIS_SERVER VAR_REDIS_CONF_FILE
-\nRestart=on-failure
-\nLimitNOFILE=10032
-\nNoNewPrivileges=yes
-\nType=simple
-\nUMask=0077
-\nUser=redis
-\nGroup=redis
-\nWorkingDirectory=VAR_REDIS_HOME
-\nExecStartPre=/bin/mkdir -p VAR_REDIS_RUN
-\nExecStartPre=/bin/mkdir -p VAR_REDIS_DATA
-\nExecStartPre=/bin/mkdir -p VAR_REDIS_LOGS
-\n
-\n[Install]
-\nWantedBy=multi-user.target
-\n
-EOF
-
-  VAR=${VAR//VAR_REDIS_SERVER/${REDIS_SERVER}}
-  VAR=${VAR//VAR_REDIS_CONF_FILE/${REDIS_CONF_FILE}}
-  VAR=${VAR//VAR_REDIS_HOME/${REDIS_HOME}}
-  VAR=${VAR//VAR_REDIS_RUN/${REDIS_RUN}}
-  VAR=${VAR//VAR_REDIS_DATA/${REDIS_DATA}}
-  VAR=${VAR//VAR_REDIS_LOGS/${REDIS_LOGS}}
-  echo "> /etc/systemd/system/$SERVICE_NAME.service"
-  echo -e $VAR | sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null
-
-  echo "> Enable $SERVICE_NAME.service"
-  sudo systemctl enable $SERVICE_NAME.service
-fi
-
-###################################
-# Sudoers Redis
-###################################
-is_overwrite=$(is_overwrite_file_with_sudo '/etc/sudoers.d/$SERVICE_NAME')
-echo "Sudoers: $is_overwrite"
-if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
-IFS='' read -r -d '' VAR <<"EOF"
-%redis ALL=(root) /usr/sbin/reboot
-\n%redis ALL=(root) NOPASSWD: /bin/journalctl -xe
-\n%redis ALL=(root) NOPASSWD: /bin/systemctl stop VAR_SERVICE_NAME.service,/bin/systemctl start VAR_SERVICE_NAME.service,/bin/systemctl restart VAR_SERVICE_NAME.service,/bin/systemctl status VAR_SERVICE_NAME.service
-\n%redis ALL=(root) NOPASSWD: /bin/systemctl stop VAR_SERVICE_NAME,/bin/systemctl start VAR_SERVICE_NAME,/bin/systemctl restart VAR_SERVICE_NAME,/bin/systemctl status VAR_SERVICE_NAME
-EOF
-
-  VAR=${VAR//VAR_SERVICE_NAME/${SERVICE_NAME}}
-  echo "> /etc/sudoers.d/$SERVICE_NAME"
-  echo -e $VAR | sudo tee /etc/sudoers.d/$SERVICE_NAME  > /dev/null
-fi
+  ###################################
+  # Sudoers Redis
+  ###################################
+  is_overwrite=$(is_overwrite_file_with_sudo /etc/sudoers.d/$SERVICE_NAME)
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    SUDOERS_PATH=$REDIS_SRC_PATH/etc/sudoers.d
+    [ ! -d $SUDOERS_PATH ] && { mkdir -p $SUDOERS_PATH; echo "create new $SUDOERS_PATH"; }
+    
+    SERVICE_NAME=$SERVICE_NAME \
+      envsubst< $SCRIPT_DIR/redis/redis.sudoers >  $SUDOERS_PATH/$SERVICE_NAME
+      
+    echo "> /etc/sudoers.d/$SERVICE_NAME"
+    sudo cp $SUDOERS_PATH/$SERVICE_NAME /etc/sudoers.d/$SERVICE_NAME
+  fi
 
 fi
 
@@ -366,7 +328,93 @@ fi
 
 if [ ${#REDIS_MODULE_GEAR} -gt 0 ]; then
   echo "Installing Module RedisGears version $REDIS_MODULE_GEAR"
+  SETUP_PATH=$HOME/setups
+  REDIS_MODULE_GIT_URL="https://github.com/RedisGears/RedisGears.git"
+  REDIS_MODULE_GIT_VERSION="v$REDIS_MODULE_GEAR"
+  REDIS_MODULE_SRC="$SETUP_PATH/RedisGears-$REDIS_MODULE_GEAR"
+  REDIS_MODULE_PATH=$REDIS_PLUGGINS/rg
+  REDIS_MODULE_LIB=$REDIS_MODULE_PATH/redisgears-$REDIS_MODULE_GEAR.so
+  is_overwrite=$(is_overwrite_file $REDIS_MODULE_LIB)
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
+    ## Download source
+    [ ! -d $REDIS_MODULE_SRC ] && { \
+        mkdir -p $REDIS_MODULE_SRC; \
+        [ $REDIS_MODULE_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+          && { git clone --recursive $REDIS_MODULE_GIT_URL $REDIS_MODULE_SRC; } \
+          || { git clone --recursive $REDIS_MODULE_GIT_URL -b $REDIS_MODULE_GIT_VERSION $REDIS_MODULE_SRC; } \
+      }
+    ## buil source
+    [ ! -d $REDIS_MODULE_SRC/tmp ] && { mkdir -p $REDIS_MODULE_SRC/tmp; }
+    export CPYTHON_PREFIX=$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR
+    sudo dnf --enablerepo=powertools install -y tix-devel
+    cd $REDIS_MODULE_SRC && { \
+      sudo $REDIS_MODULE_SRC/system-setup.py; \
+      TMPDIR=$REDIS_MODULE_SRC/tmp make; }
+    ##
+    if [ -f $REDIS_MODULE_SRC/bin/linux-x64-release/redisgears.so ]; then
+      [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
+      echo "install python3_$REDIS_MODULE_GEAR"
+      [ -d $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR ] && { rm -rf $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR; echo "existed, just remove $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR"; }
+      cp -R $REDIS_MODULE_SRC/bin/linux-x64-release/python3_$REDIS_MODULE_GEAR $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR
+      python_interpreter='#!'${REDIS_MODULE_PATH}/python3_$REDIS_MODULE_GEAR/bin/python3.7
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/2to3-3.7"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/easy_install-3.7"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/idle3.7"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pip"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pip3"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pip3.7"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pydoc3.7"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pyvenv-3.7"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/virtualenv"
+      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/wheel"
+      export python_path="${REDIS_MODULE_PATH}/python3_$REDIS_MODULE_GEAR"  
+      sed -i "/^prefix=.*/c prefix=\"${python_path}\"" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/python3.7m-config"
+      sed -i "/^prefix=.*/c prefix=\"${python_path}\"" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/lib/pkgconfig/python-3.7.pc"
+      
+
+      cp $REDIS_MODULE_SRC/bin/linux-x64-release/redisgears.so $REDIS_MODULE_PATH/redisgears-${REDIS_MODULE_GEAR}.so
+      [ -f $REDIS_PLUGGINS/redisgears.so ] && { rm -f $REDIS_PLUGGINS/redisgears.so; }
+      ln -s $REDIS_MODULE_LIB $REDIS_PLUGGINS/redisgears.so
+      echo "Installed $(ls -lt $REDIS_PLUGGINS/redisgears.so)";
+    fi
+
+  fi
 fi
 
+
+###################################
+# Redis Configuration
+###################################
+requirepass=$(grep REDISCLI_AUTH $"/etc/sysconfig/$SERVICE_NAME" | awk -F= '{print $2}')
+redismem=$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) * 7 / (1024 * 1024)*10))
+echo 
+echo
+echo "Please update information bellow in Redis Configuration"
+echo "================== vi $REDIS_CONF_FILE =================="
+echo
+echo "loadmodule $REDIS_PLUGGINS/redisearch.so"
+echo "loadmodule $REDIS_PLUGGINS/rejson.so"
+echo "loadmodule $REDIS_PLUGGINS/redistimeseries.so"
+echo "loadmodule $REDIS_PLUGGINS/redisgraph.so"
+echo "loadmodule $REDIS_PLUGGINS/redisai.so"
+echo "loadmodule $REDIS_PLUGGINS/redisgears.so PythonInstallationDir $REDIS_PLUGGINS/rg DownloadDeps 0 CreateVenv 1 ExecutionThreads 1024"
+echo
+echo "bind * -::*"
+echo "port $REDIS_PORT"
+echo "unixsocket $REDIS_RUN/redis.sock"
+echo "unixsocketperm 700"
+
+echo "pidfile $REDIS_RUN/redis_$REDIS_PORT.pid"
+echo "logfile \"redis_$REDIS_PORT.log\""
+echo "dbfilename redis_$REDIS_PORT.rdb"
+echo "dir $REDIS_DATA"
+echo
+echo "requirepass $requirepass"
+echo "aclfile $REDIS_CONF/users.acl"
+echo "maxmemory=${redismem}mb"
+
+echo "sudo systemctl restart redis"
+echo "sudo systemctl status redis"
 
 
