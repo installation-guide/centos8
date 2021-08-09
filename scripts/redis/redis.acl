@@ -1,0 +1,2 @@
+default alice off &* -@all
+system on +@all -@dangerous >$REDIS_AUTH ~*

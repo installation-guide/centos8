@@ -179,7 +179,7 @@ if [ ${#REDIS_MODULE_SEARCH} -gt 0 ]; then
     ##
     if [ -f $REDIS_MODULE_SRC/build/redisearch.so ]; then
       [ ! -d $REDIS_MODULE_PATH ] && { mkdir -p $REDIS_MODULE_PATH; echo "create new folder $REDIS_MODULE_PATH"; }
-      cp $REDIS_MODULE_SRC/build/redisearch.so $$REDIS_MODULE_LIB
+      cp $REDIS_MODULE_SRC/build/redisearch.so $REDIS_MODULE_LIB
       [ -f $REDIS_PLUGGINS/redisearch.so ] && { rm -f $REDIS_PLUGGINS/redisearch.so; }
       ln -s $REDIS_MODULE_LIB $REDIS_PLUGGINS/redisearch.so
       echo "Installed $(ls -lt $REDIS_PLUGGINS/redisearch.so)";
