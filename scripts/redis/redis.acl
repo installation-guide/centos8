@@ -1,2 +1,3 @@
-default alice off &* -@all
-system on +@all -@dangerous >$REDIS_AUTH ~*
+user default on >$REDIS_AUTH_DEFAULT +@all ~*
+user admin on >$REDIS_AUTH_ADMIN +@all ~*
+user service on >$REDIS_AUTH_SERVICE +@all -@dangerous -@admin ~*

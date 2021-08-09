@@ -187,6 +187,7 @@ if [ ${#REDIS_MODULE_SEARCH} -gt 0 ]; then
       echo "Redis Search module is not exist"
     fi
   fi
+  
 fi
 
 if [ ${#REDIS_MODULE_JSON} -gt 0 ]; then
@@ -218,6 +219,8 @@ if [ ${#REDIS_MODULE_JSON} -gt 0 ]; then
       echo "Installed $(ls -lt $REDIS_PLUGGINS/rejson.so)";
     fi
   fi
+  
+  
 fi
 
 if [ ${#REDIS_MODULE_TIMESERIES} -gt 0 ]; then
@@ -387,34 +390,71 @@ fi
 # Redis Configuration
 ###################################
 requirepass=$(grep REDISCLI_AUTH $"/etc/sysconfig/$SERVICE_NAME" | awk -F= '{print $2}')
-redismem=$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) * 7 / (1024 * 1024)*10))
-echo 
+redismem=$(($(getconf _PHYS_PAGES) * $(getconf PAGE_SIZE) * 7 / (1024 * 1024 * 10)))
+
+  ###################################
+  # ACL FILE
+  ###################################
+  is_overwrite=$(is_overwrite_file $REDIS_CONF/$SERVICE_NAME.acl)
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    REDIS_CONFIG_PATH=$REDIS_SRC_PATH/etc/rconf
+    [ ! -d $REDIS_CONFIG_PATH ] && { mkdir -p $REDIS_CONFIG_PATH; echo "create new $REDIS_CONFIG_PATH"; }
+    
+    REDIS_AUTH_DEFAULT=$requirepass \
+    REDIS_AUTH_ADMIN=${REDIS_AUTH_ADMIN:-$(cat /dev/urandom | tr -dc a-zA-Z0-9 | fold -w 32 | head -n 1)} \
+    REDIS_AUTH_SERVICE=${REDIS_AUTH_ADMIN:-$(cat /dev/urandom | tr -dc a-zA-Z0-9 | fold -w 24 | head -n 1)} \
+      envsubst< $SCRIPT_DIR/redis/redis.acl >  $REDIS_CONFIG_PATH/$SERVICE_NAME.acl
+    echo "> $REDIS_CONF/$SERVICE_NAME.acl"
+    cp $REDIS_CONFIG_PATH/$SERVICE_NAME.acl $REDIS_CONF/$SERVICE_NAME.acl
+  fi
+
+  ###################################
+  # LOCAL CONFIG FILE
+  ###################################
+  REDIS_CONF_MODULE_REJSON=
+  REDIS_CONF_MODULE_RSEARCH=
+  REDIS_CONF_MODULE_RTIMESERIES=
+  REDIS_CONF_MODULE_RGRAPH=
+  REDIS_CONF_MODULE_RAI=
+  REDIS_CONF_MODULE_RGEARS=
+  [ -f $REDIS_PLUGGINS/redisearch.so ] && { REDIS_CONF_MODULE_RSEARCH="loadmodule $REDIS_PLUGGINS/redisearch.so"; }
+  [ -f $REDIS_PLUGGINS/rejson.so ] && { REDIS_CONF_MODULE_REJSON="loadmodule $REDIS_PLUGGINS/rejson.so"; }
+  [ -f $REDIS_PLUGGINS/redistimeseries.so ] && { REDIS_CONF_MODULE_RTIMESERIES="loadmodule $REDIS_PLUGGINS/redistimeseries.so"; }
+  [ -f $REDIS_PLUGGINS/redisgraph.so ] && { REDIS_CONF_MODULE_RGRAPH="loadmodule $REDIS_PLUGGINS/redisgraph.so"; }
+  [ -f $REDIS_PLUGGINS/redisai.so ] && { REDIS_CONF_MODULE_RAI="loadmodule $REDIS_PLUGGINS/redisai.so"; }
+  [ -f $REDIS_PLUGGINS/redisgears.so ] && { REDIS_CONF_MODULE_RGEARS="loadmodule $REDIS_PLUGGINS/redisgears.so PythonInstallationDir $REDIS_PLUGGINS/rg DownloadDeps 0 CreateVenv 1 ExecutionThreads 32"; }
+  
+  is_overwrite=$(is_overwrite_file $REDIS_CONF/local_${SERVICE_NAME}.conf)
+  if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+    REDIS_CONFIG_PATH=$REDIS_SRC_PATH/etc/rconf
+    [ ! -d $REDIS_CONFIG_PATH ] && { mkdir -p $REDIS_CONFIG_PATH; echo "create new $REDIS_CONFIG_PATH"; }
+    
+    SERVICE_NAME=$SERVICE_NAME \
+    REDIS_CONF_MODULE_REJSON=$REDIS_CONF_MODULE_REJSON \
+    REDIS_CONF_MODULE_RSEARCH=$REDIS_CONF_MODULE_RSEARCH \
+    REDIS_CONF_MODULE_RTIMESERIES=$REDIS_CONF_MODULE_RTIMESERIES \
+    REDIS_CONF_MODULE_RGRAPH=$REDIS_CONF_MODULE_RGRAPH \
+    REDIS_CONF_MODULE_RAI=$REDIS_CONF_MODULE_RAI \
+    REDIS_CONF_MODULE_RGEARS=$REDIS_CONF_MODULE_RGEARS \
+    REDIS_PORT=$REDIS_PORT \
+    REDIS_RUN=$REDIS_RUN \
+    REDIS_CONF_PIDFILE="$REDIS_RUN/${SERVICE_NAME}_${REDIS_PORT}.pid" \
+    REDIS_CONF_LOGFILE="$REDIS_LOGS/${SERVICE_NAME}_${REDIS_PORT}.log" \
+    REDIS_DATA="$REDIS_DATA" \
+    REDIS_CONF_DATAFILE="${SERVICE_NAME}_${REDIS_PORT}.dump" \
+    REDIS_CONF_ACLFILE="$REDIS_CONF/$SERVICE_NAME.acl" \
+    REDIS_AUTH=$requirepass \
+    REDIS_CONF_MAX_MEMORY="${redismem}mb" \
+      envsubst< $SCRIPT_DIR/redis/local.conf > $REDIS_CONFIG_PATH/local.conf
+    echo "> $REDIS_CONF/local_${SERVICE_NAME}.conf"
+    cp $REDIS_CONFIG_PATH/local.conf $REDIS_CONF/local_${SERVICE_NAME}.conf
+  fi
+
+
 echo
 echo "Please update information bellow in Redis Configuration"
 echo "================== vi $REDIS_CONF_FILE =================="
+echo "include $REDIS_CONF/local_${SERVICE_NAME}.conf"
+echo "========================================================="
+echo 
 echo
-echo "loadmodule $REDIS_PLUGGINS/redisearch.so"
-echo "loadmodule $REDIS_PLUGGINS/rejson.so"
-echo "loadmodule $REDIS_PLUGGINS/redistimeseries.so"
-echo "loadmodule $REDIS_PLUGGINS/redisgraph.so"
-echo "loadmodule $REDIS_PLUGGINS/redisai.so"
-echo "loadmodule $REDIS_PLUGGINS/redisgears.so PythonInstallationDir $REDIS_PLUGGINS/rg DownloadDeps 0 CreateVenv 1 ExecutionThreads 1024"
-echo
-echo "bind * -::*"
-echo "port $REDIS_PORT"
-echo "unixsocket $REDIS_RUN/redis.sock"
-echo "unixsocketperm 700"
-
-echo "pidfile $REDIS_RUN/redis_$REDIS_PORT.pid"
-echo "logfile \"redis_$REDIS_PORT.log\""
-echo "dbfilename redis_$REDIS_PORT.rdb"
-echo "dir $REDIS_DATA"
-echo
-echo "requirepass $requirepass"
-echo "aclfile $REDIS_CONF/users.acl"
-echo "maxmemory=${redismem}mb"
-
-echo "sudo systemctl restart redis"
-echo "sudo systemctl status redis"
-
-
