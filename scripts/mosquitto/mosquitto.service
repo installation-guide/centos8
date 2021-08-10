@@ -1,0 +1,18 @@
+[Unit]
+Description=Mosquitto MQTT v3.1/v3.1.1 Broker
+Documentation=https://github.com/eclipse/mosquitto
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+ConditionPathExists=${MOSQUITTO_LOGS_PATH}
+
+[Service]
+Type=simple
+User=${${SERVICE_USER}
+Group=${${SERVICE_GROUP}}
+Restart=on-failure
+EnvironmentFile=${MOSQUITTO_SYSCONFIG}
+ExecStart=${MOSQUITTO_APP} -c ${MOSQUITTO_CONFIG}
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
