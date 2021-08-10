@@ -15,15 +15,12 @@ if [ $# -ne 1 ]; then
   echo "<envoy version>: 1.18.3, 1.19.0 ..."
   exit 1
 fi
-ENVOY_VERSION=$1
-ENVOY_HOME="$HOME/v$ENVOY_VERSION"
-ENVOY_CONF=$ENVOY_HOME/conf
-ENVOY_LOGS=$ENVOY_HOME/logs
-ENVOY_DATA=$ENVOY_HOME/data
-ENVOY_PLUGGIN=$ENVOY_HOME/plugins
-ENVOY_APP=$HOME/.func-e/versions/$ENVOY_VERSION/bin/envoy
+MOSQUITTO_VERSION=$1
 
-SERVICE_NAME=envoy
+SERVICE_NAME=mqtt
+MOSQUITTO_SERVER=/usr/local/sbin/mosquitto
+MOSQUITTO_CONF_FILE=/etc/mosquitto/mosquitto.conf
+
 
 user_check_sudo
 if [ $? -ne 0 ]; then
@@ -32,149 +29,75 @@ if [ $? -ne 0 ]; then
 fi
 
 ## Create new folder if not exist
-[ ! -d $ENVOY_HOME ] && { mkdir -p $ENVOY_HOME; echo "create $ENVOY_HOME"; }
-[ ! -d $ENVOY_CONF ] && { mkdir -p $ENVOY_CONF; echo "create $ENVOY_CONF"; }
-[ ! -d $ENVOY_LOGS ] && { mkdir -p $ENVOY_LOGS; echo "create $ENVOY_LOGS"; }
-[ ! -d $ENVOY_DATA ] && { mkdir -p $ENVOY_DATA; echo "create $ENVOY_DATA"; }
-[ ! -d $ENVOY_PLUGGIN ] && { mkdir -p $ENVOY_PLUGGIN; echo "create $ENVOY_PLUGGIN"; }
+#[ ! -d $MOSQUITTO_HOME ] && { mkdir -p $MOSQUITTO_HOME; echo "create $MOSQUITTO_HOME"; }
+#[ ! -d $MOSQUITTO_BIN ] && { mkdir -p $MOSQUITTO_CONF; echo "create $MOSQUITTO_BIN"; }
+#[ ! -d $MOSQUITTO_CONF ] && { mkdir -p $MOSQUITTO_CONF; echo "create $MOSQUITTO_CONF"; }
+#[ ! -d $MOSQUITTO_LOGS ] && { mkdir -p $MOSQUITTO_LOGS; echo "create $MOSQUITTO_LOGS"; }
+#[ ! -d $MOSQUITTO_DATA ] && { mkdir -p $MOSQUITTO_DATA; echo "create $MOSQUITTO_DATA"; }
+#[ ! -d $MOSQUITTO_PLUGGIN ] && { mkdir -p $MOSQUITTO_PLUGGIN; echo "create $MOSQUITTO_PLUGGIN"; }
 
-####
-## install 'func-e' if not exist
-[ -f /usr/local/bin/func-e ] || { curl -L https://getenvoy.io/install.sh | sudo bash -s -- -b /usr/local/bin; }
-func-e use $ENVOY_VERSION
-if [ ! -f $ENVOY_APP ]; then
-  echo "envoy $ENVOY_VERSION was not installed"
-  echo "$ENVOY_APP"
-  echo "please correct version, ex: 1.19.0, 1.18.3 ..."
-  exit 1
+###################################
+# Download & Build Redis Source
+###################################
+SETUP_PATH=$HOME/setups
+SERVICE_SRC_FILE="mosquitto-${MOSQUITTO_VERSION}.tar.gz"
+SERVICE_SRC_URL="https://mosquitto.org/files/source/${SERVICE_SRC_FILE}"
+SERVICE_SRC_PATH="$SETUP_PATH/mosquitto-$MOSQUITTO_VERSION"
+[ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
+
+## check process running
+pgrep -x mosquitto >/dev/null && { echo "mosquitto is Running, please stop service before re-install"; exit; }
+
+
+################################
+# Build Dependency Package
+# 
+#################################
+#install_package_from_repo make openssl-devel c-ares-devel libuuid-devel libcurl-devel
+#sudo dnf --enablerepo=powertools install libuv-devel
+#install_package_from_repo libwebsockets libwebsockets-devel
+
+#SETUP_PATH=$HOME/setups
+CJSON_GIT_URL="https://github.com/DaveGamble/cJSON.git "
+CJSON_GIT_VERSION="vlatest"
+CJSON_SRC="$SETUP_PATH/cJSON-$CJSON_GIT_VERSION"
+CJSON_LIB=" /usr/local/lib/libcjson.so"
+is_overwrite=$(is_overwrite_file $CJSON_LIB)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  [ ! -d $SETUP_PATH ] && { mkdir -p $SETUP_PATH; echo "create $SETUP_PATH"; }
+  ## Download source
+  [ ! -d $CJSON_SRC ] && { \
+      mkdir -p $CJSON_SRC; \
+      [ $CJSON_GIT_VERSION == "v$CONST_VERSION_LATEST" ] \
+        && { git clone --recursive $CJSON_GIT_URL $CJSON_SRC; } \
+        || { git clone --recursive $CJSON_GIT_URL -b $CJSON_GIT_VERSION $CJSON_SRC; } \
+    }
+  ## buil source
+  cd $CJSON_SRC && mkdir $CJSON_SRC/build && cd $CJSON_SRC/build && cmake ..
+  cd $CJSON_SRC && make && sudo make install
 fi
 
-########################
-# Envoy Sample Config
-########################
-IS_OVERWRITE='Y'
-if [ -f $ENVOY_CONF/envoy.yaml ]; then
-  read -p "do you overwrite '$ENVOY_CONF/envoy.yaml' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
+
+################################
+# Build Mosquitto from Source
+#################################
+is_overwrite=$(is_overwrite_file $MOSQUITTO_SERVER)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  echo "Mosquitto Server's existed in $MOSQUITTO_SERVER"
+  if [ ! -f $SERVICE_SRC_PATH ]; then
+    ## param: redis path,redis url, output path, command type
+    download_and_extract_package_from_url $SETUP_PATH/$SERVICE_SRC_FILE $SERVICE_SRC_URL $SETUP_PATH "tar-extract"
   fi
+
+  [ ! -d $SERVICE_SRC_PATH ] && { echo "Mosquitto source path not exist"; exit 1; }
+
+  echo "Starting install Mosquitto from source: $SERVICE_SRC_PATH"
+  cd $SERVICE_SRC_PATH && make WITH_WEBSOCKETS=yes WITH_CJSON=yes && sudo make install
 fi
 
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-tee $ENVOY_CONF/envoy.yaml > /dev/null <<'EOF'
-admin:
-  address:
-    socket_address: { address: 127.0.0.1, port_value: 9901 }
-EOF
-fi
-
-########################
-# System Config
-########################
-IS_OVERWRITE='Y'
-if [ -f /etc/sysconfig/envoy ]; then
-  read -p "do you overwrite '/etc/sysconfig/envoy' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
-fi
-
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-
-IFS='' read -r -d '' VAR <<"EOF"
-ENOVY_HOME_DIR=VAR_ENVOY_HOME
-\nENVOY_CONF_DIR=VAR_ENVOY_CONF
-\nENVOY_LOG_DIR=VAR_ENVOY_LOGS
-\nENVOY_DATA_DIR=VAR_ENVOY_DATA
-\nENVOY_CONFIG_FILE=VAR_ENVOY_CONF/envoy.yaml
-\nENVOY_LOGGING_ACCESS_FILE=VAR_ENVOY_LOG_DIR/envoy_main.log
-EOF
-
-  VAR=${VAR//VAR_ENVOY_HOME/${ENVOY_HOME}}
-  VAR=${VAR//VAR_ENVOY_CONF/${ENVOY_CONF}}
-  VAR=${VAR//VAR_ENVOY_LOGS/${ENVOY_LOGS}}
-  VAR=${VAR//VAR_ENVOY_DATA/${ENVOY_DATA}}
-  VAR=${VAR//VAR_ENVOY_LOG_DIR/${ENVOY_LOGS}}
-  echo "> /etc/sysconfig/envoy"
-  echo -e $VAR | sudo tee /etc/sysconfig/envoy > /dev/null
-
-fi
+###################################
+# Sysconfig Mosquitto
+###################################
 
 
-########################
-# SystemD Service
-########################
-IS_OVERWRITE='Y'
-if [ -f /etc/systemd/system/$SERVICE_NAME.service ]; then
-  read  -p "do you overwrite '/etc/systemd/system/$SERVICE_NAME.service' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
-fi
-
-
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-
-IFS='' read -r -d '' VAR <<"EOF"
-[Unit]
-\nDescription= Cloud-native high-performance edge/middle/service proxy (Envoy)
-\nDocumentation=https://www.envoyproxy.io
-\nRequires=network.target remote-fs.target
-\nAfter=network.target remote-fs.target
-\nConditionPathExists=$ENOVY_HOME_DIR
-\nConditionPathExists=$ENVOY_LOG_DIR
-\nConditionPathExists=$ENVOY_DATA_DIR
-\n
-\n[Service]
-\nType=simple
-\nUser=root
-\nGroup=envoy
-\nEnvironmentFile=/etc/sysconfig/envoy
-\nExecStart=VAR_ENVOY_APP -c $ENVOY_CONFIG_FILE --log-path $ENVOY_LOGGING_ACCESS_FILE
-\n#Restart=on-failure
-\nExecStartPre=/usr/bin/touch $ENVOY_LOGGING_ACCESS_FILE
-\n[Install]
-\nWantedBy=multi-user.target
-EOF
-
-  VAR=${VAR//VAR_ENVOY_APP/${ENVOY_APP}}
-  echo "> /etc/systemd/system/$SERVICE_NAME.service"
-  echo -e $VAR | sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null
-
-  echo "> Enable $SERVICE_NAME.service"
-  sudo systemctl enable $SERVICE_NAME.service
-fi
-
-
-########################
-# Sudoer Service
-########################
-IS_OVERWRITE='Y'
-if sudo test -f /etc/sudoers.d/$SERVICE_NAME; then
-  read -p "do you overwrite '/etc/sudoers.d/$SERVICE_NAME ' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
-fi
-
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-IFS='' read -r -d '' VAR <<"EOF"
-%envoy ALL=(root) /usr/sbin/reboot
-\n%envoy ALL=(root) NOPASSWD: /bin/journalctl -xe
-\n%envoy ALL=(root) NOPASSWD: /bin/systemctl stop VAR_SERVICE_NAME.service,/bin/systemctl start VAR_SERVICE_NAME.service,/bin/systemctl restart VAR_SERVICE_NAME.service,/bin/systemctl status VAR_SERVICE_NAME.service
-\n%envoy ALL=(root) NOPASSWD: /bin/systemctl stop VAR_SERVICE_NAME,/bin/systemctl start VAR_SERVICE_NAME,/bin/systemctl restart VAR_SERVICE_NAME,/bin/systemctl status VAR_SERVICE_NAME
-EOF
-
-  VAR=${VAR//VAR_SERVICE_NAME/${SERVICE_NAME}}
-  echo "> /etc/sudoers.d/$SERVICE_NAME"
-  echo -e $VAR | sudo tee /etc/sudoers.d/$SERVICE_NAME  > /dev/null
-fi
 

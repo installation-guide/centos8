@@ -203,7 +203,7 @@ download_and_extract_package_from_url() {
     echo "Not existed $package_path, download Package"
     curl -L $package_url --output $package_path
   fi
-  
+  #[ ! -d $output ] && { mkdir -p $output; }
   if [ -f $package_path ]; then
     case $command_type in
       tar-extract)
@@ -253,6 +253,35 @@ install_source_from_url_with_sudo() {
       cd $package_source && make -j$(nproc) &&  sudo make install 
     fi
   fi
+}
+
+YUM_CMD=$(which yum)
+DNF_CMD=$(which dnf)
+APT_GET_CMD=$(which apt-get)
+
+install_package_from_repo() {
+  if [ $# -eq 0 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param"
+    echo "${FUNCNAME} <package 1> <package 2> .."
+    return 1
+  fi
+  echo "${FUNCNAME}($@)"
+  list_packages=$@
+  for package_name in $list_packages 
+  do
+    echo "Package name : $package_name";
+    if [[ ! -z $DNF_CMD ]]; then
+        sudo dnf install -y $package_name
+     elif [[ ! -z $YUM_CMD ]]; then
+        sudo yum install -y $package_name
+     elif [[ ! -z $APT_GET_CMD ]]; then
+        sudo apt-get $package_name
+     else
+        echo "error can't install package $PACKAGE"
+        return 1;
+     fi
+  done
+  return 0
 }
 
 copy_file_from_to() {
