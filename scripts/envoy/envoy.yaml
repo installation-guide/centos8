@@ -1,0 +1,5 @@
+admin:
+  profile_path: ${ENVOY_ADMIN_PROFILE}
+  access_log_path: ${ENVOY_ADMIN_LOG_FILE}
+  address:
+    socket_address: { address: 0.0.0.0, port_value: ${ENVOY_ADMIN_PORT} }

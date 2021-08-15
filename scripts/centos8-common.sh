@@ -255,9 +255,9 @@ install_source_from_url_with_sudo() {
   fi
 }
 
-YUM_CMD=$(which yum)
-DNF_CMD=$(which dnf)
-APT_GET_CMD=$(which apt-get)
+YUM_CMD=$(which yum) &> /dev/null
+DNF_CMD=$(which dnf) &> /dev/null
+APT_GET_CMD=$(command -v apt-get &> /dev/null)
 
 install_package_from_repo() {
   if [ $# -eq 0 ]; then
@@ -274,7 +274,7 @@ install_package_from_repo() {
         sudo dnf install -y $package_name
      elif [[ ! -z $YUM_CMD ]]; then
         sudo yum install -y $package_name
-     elif [[ ! -z $APT_GET_CMD ]]; then
+     elif [ -x $APT_GET_CMD ]; then
         sudo apt-get $package_name
      else
         echo "error can't install package $PACKAGE"

@@ -92,7 +92,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
       envsubst< $SCRIPT_DIR/redis/redis.sysconfig >  $SYSCONFIG_PATH/$SERVICE_NAME
       
     echo "> /etc/sysconfig/$SERVICE_NAME"
-    #sudo cp $SYSCONFIG_PATH/$SERVICE_NAME /etc/sysconfig/$SERVICE_NAME
+    sudo cp $SYSCONFIG_PATH/$SERVICE_NAME /etc/sysconfig/$SERVICE_NAME
   fi
 
   ###################################
@@ -129,7 +129,6 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
     
     SERVICE_NAME=$SERVICE_NAME \
       envsubst< $SCRIPT_DIR/redis/redis.sudoers >  $SUDOERS_PATH/$SERVICE_NAME
-      
     echo "> /etc/sudoers.d/$SERVICE_NAME"
     sudo cp $SUDOERS_PATH/$SERVICE_NAME /etc/sudoers.d/$SERVICE_NAME
   fi

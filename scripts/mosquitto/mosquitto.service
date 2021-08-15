@@ -7,11 +7,11 @@ ConditionPathExists=${MOSQUITTO_LOGS_PATH}
 
 [Service]
 Type=simple
-User=${${SERVICE_USER}
-Group=${${SERVICE_GROUP}}
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
 Restart=on-failure
-EnvironmentFile=${MOSQUITTO_SYSCONFIG}
-ExecStart=${MOSQUITTO_APP} -c ${MOSQUITTO_CONFIG}
+#EnvironmentFile=${MOSQUITTO_SYSCONFIG}
+ExecStart=${MOSQUITTO_SERVER} -c ${MOSQUITTO_CONF_FILE}
 ExecReload=/bin/kill -HUP $MAINPID
 
 [Install]

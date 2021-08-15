@@ -9,19 +9,22 @@ source "$SCRIPT_DIR/centos8-common.sh"
 ###############
 # Execute
 ###############
-if [ $# -ne 1 ]; then
-  echo "$0: invalid input parameters ($#)"
-  echo "Usage: $0 <envoy version>"
-  echo "<envoy version>: 1.18.3, 1.19.0 ..."
-  exit 1
-fi
-ENVOY_VERSION=$1
+#if [ $# -ne 1 ]; then
+#  echo "$0: invalid input parameters ($#)"
+#  echo "Usage: $0 <envoy version>"
+#  echo "<envoy version>: 1.18.3, 1.19.0 ..."
+#  exit 1
+#fi
+
+ENVOY_VERSION=${ENVOY_VERSION:-1.19.0}
+ENVOY_ADMIN_PORT=${ENVOY_ADMIN_PORT:-3888}
+
 ENVOY_HOME="$HOME/v$ENVOY_VERSION"
 ENVOY_CONF=$ENVOY_HOME/conf
 ENVOY_LOGS=$ENVOY_HOME/logs
 ENVOY_DATA=$ENVOY_HOME/data
 ENVOY_PLUGGIN=$ENVOY_HOME/plugins
-ENVOY_APP=$HOME/.func-e/versions/$ENVOY_VERSION/bin/envoy
+ENVOY_SERVER=$HOME/.func-e/versions/$ENVOY_VERSION/bin/envoy
 
 SERVICE_NAME=envoy
 
@@ -42,9 +45,9 @@ fi
 ## install 'func-e' if not exist
 [ -f /usr/local/bin/func-e ] || { curl -L https://getenvoy.io/install.sh | sudo bash -s -- -b /usr/local/bin; }
 func-e use $ENVOY_VERSION
-if [ ! -f $ENVOY_APP ]; then
+if [ ! -f $ENVOY_SERVER ]; then
   echo "envoy $ENVOY_VERSION was not installed"
-  echo "$ENVOY_APP"
+ echo "$ENVOY_APP"
   echo "please correct version, ex: 1.19.0, 1.18.3 ..."
   exit 1
 fi
@@ -52,129 +55,89 @@ fi
 ########################
 # Envoy Sample Config
 ########################
-IS_OVERWRITE='Y'
-if [ -f $ENVOY_CONF/envoy.yaml ]; then
-  read -p "do you overwrite '$ENVOY_CONF/envoy.yaml' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
+SETUP_PATH=$HOME/setups
+SERVICE_SRC_PATH=${SETUP_PATH}/envoy-v${ENVOY_VERSION}
+SERVICE_SRC_SYSCONFIG_PATH=${SERVICE_SRC_PATH}/etc
+
+[ ! -d $SERVICE_SRC_PATH ] && { mkdir -p $SERVICE_SRC_PATH; echo "create $SERVICE_SRC_PATH"; }
+[ ! -d $SERVICE_SRC_SYSCONFIG_PATH ] && { mkdir -p $SERVICE_SRC_SYSCONFIG_PATH; echo "create $SERVICE_SRC_SYSCONFIG_PATH"; }
+
+is_overwrite=$(is_overwrite_file $ENVOY_CONF/envoy.yaml)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+
+    [ ! -d $SERVICE_SRC_SYSCONFIG_PATH/conf ] && { mkdir -p $SERVICE_SRC_SYSCONFIG_PATH/conf; echo "create $SERVICE_SRC_SYSCONFIG_PATH/conf"; }
+    ENVOY_ADMIN_PORT=${ENVOY_ADMIN_PORT} \
+    ENVOY_ADMIN_LOG_FILE=${ENVOY_LOGS}/admin_access.log \
+    ENVOY_ADMIN_PROFILE=${ENVOY_DATA}/envoy.prof \
+      envsubst< $SCRIPT_DIR/envoy/envoy.yaml >  $SERVICE_SRC_SYSCONFIG_PATH/conf/envoy.yaml
+    [ -f $ENVOY_CONF/envoy.yaml ] && { cp $ENVOY_CONF/envoy.yaml $ENVOY_CONF/envoy-$(date +%s).yaml; }
+    echo "Create/Overwrite $ENVOY_CONF/envoy.yaml"
+    cp $SERVICE_SRC_SYSCONFIG_PATH/conf/envoy.yaml $ENVOY_CONF/envoy.yaml
 fi
 
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-tee $ENVOY_CONF/envoy.yaml > /dev/null <<'EOF'
-admin:
-  address:
-    socket_address: { address: 127.0.0.1, port_value: 9901 }
-EOF
-fi
+###################################
+# Sysconfig Service
+###################################
+ENVOY_SYSCONFIG=/etc/sysconfig/$SERVICE_NAME
+is_overwrite=$(is_overwrite_file_with_sudo $ENVOY_SYSCONFIG)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  ##
+  SYSCONFIG_PATH=$SERVICE_SRC_SYSCONFIG_PATH/sysconfig
+  [ ! -d $SYSCONFIG_PATH ] && { mkdir -p $SYSCONFIG_PATH; echo "create new $SYSTEMD_PATH"; }
+  ###
+  SERVICE_USER=$USER \
+  SERVICE_GROUP=$USER \
+  ENVOY_SERVER=$ENVOY_SERVER \
+  ENVOY_HOME=$ENVOY_HOME \
+  ENVOY_CONF=$ENVOY_CONF \
+  ENVOY_LOGS=$ENVOY_LOGS \
+  ENVOY_DATA=$ENVOY_DATA \
+    envsubst< $SCRIPT_DIR/envoy/envoy.sysconfig >  "$SYSCONFIG_PATH/$SERVICE_NAME.service"
 
-########################
-# System Config
-########################
-IS_OVERWRITE='Y'
-if [ -f /etc/sysconfig/envoy ]; then
-  read -p "do you overwrite '/etc/sysconfig/envoy' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
-fi
-
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-
-IFS='' read -r -d '' VAR <<"EOF"
-ENOVY_HOME_DIR=VAR_ENVOY_HOME
-\nENVOY_CONF_DIR=VAR_ENVOY_CONF
-\nENVOY_LOG_DIR=VAR_ENVOY_LOGS
-\nENVOY_DATA_DIR=VAR_ENVOY_DATA
-\nENVOY_CONFIG_FILE=VAR_ENVOY_CONF/envoy.yaml
-\nENVOY_LOGGING_ACCESS_FILE=VAR_ENVOY_LOG_DIR/envoy_main.log
-EOF
-
-  VAR=${VAR//VAR_ENVOY_HOME/${ENVOY_HOME}}
-  VAR=${VAR//VAR_ENVOY_CONF/${ENVOY_CONF}}
-  VAR=${VAR//VAR_ENVOY_LOGS/${ENVOY_LOGS}}
-  VAR=${VAR//VAR_ENVOY_DATA/${ENVOY_DATA}}
-  VAR=${VAR//VAR_ENVOY_LOG_DIR/${ENVOY_LOGS}}
-  echo "> /etc/sysconfig/envoy"
-  echo -e $VAR | sudo tee /etc/sysconfig/envoy > /dev/null
-
+  echo "> $ENVOY_SYSCONFIG"
+  sudo cp $SYSCONFIG_PATH/$SERVICE_NAME.service $ENVOY_SYSCONFIG
 fi
 
 
-########################
+###################################
 # SystemD Service
-########################
-IS_OVERWRITE='Y'
-if [ -f /etc/systemd/system/$SERVICE_NAME.service ]; then
-  read  -p "do you overwrite '/etc/systemd/system/$SERVICE_NAME.service' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
-fi
+###################################
+is_overwrite=$(is_overwrite_file_with_sudo /etc/systemd/system/$SERVICE_NAME.service)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  ##
+  SYSTEMD_PATH=$SERVICE_SRC_SYSCONFIG_PATH/systemd/system
+  [ ! -d $SYSTEMD_PATH ] && { mkdir -p $SYSTEMD_PATH; echo "create new $SYSTEMD_PATH"; }
+  ###
+  export SERVICE_USER=$USER; \
+  export SERVICE_GROUP=$USER; \
+  export ENVOY_SERVER=$ENVOY_SERVER; \
+  export ENVOY_SYSCONFIG=$ENVOY_SYSCONFIG; \
+  export ENVOY_LOGS=$ENVOY_LOGS; \
+    cat $SCRIPT_DIR/envoy/envoy.service | envsubst '$SERVICE_USER ${SERVICE_GROUP} ${ENVOY_SERVER} ${ENVOY_SYSCONFIG} ${ENVOY_LOGS}' > "$SYSTEMD_PATH/$SERVICE_NAME.service"
 
-
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-
-IFS='' read -r -d '' VAR <<"EOF"
-[Unit]
-\nDescription= Cloud-native high-performance edge/middle/service proxy (Envoy)
-\nDocumentation=https://www.envoyproxy.io
-\nRequires=network.target remote-fs.target
-\nAfter=network.target remote-fs.target
-\nConditionPathExists=$ENOVY_HOME_DIR
-\nConditionPathExists=$ENVOY_LOG_DIR
-\nConditionPathExists=$ENVOY_DATA_DIR
-\n
-\n[Service]
-\nType=simple
-\nUser=root
-\nGroup=envoy
-\nEnvironmentFile=/etc/sysconfig/envoy
-\nExecStart=VAR_ENVOY_APP -c $ENVOY_CONFIG_FILE --log-path $ENVOY_LOGGING_ACCESS_FILE
-\n#Restart=on-failure
-\nExecStartPre=/usr/bin/touch $ENVOY_LOGGING_ACCESS_FILE
-\n[Install]
-\nWantedBy=multi-user.target
-EOF
-
-  VAR=${VAR//VAR_ENVOY_APP/${ENVOY_APP}}
   echo "> /etc/systemd/system/$SERVICE_NAME.service"
-  echo -e $VAR | sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null
+  sudo cp $SYSTEMD_PATH/$SERVICE_NAME.service /etc/systemd/system/$SERVICE_NAME.service
 
   echo "> Enable $SERVICE_NAME.service"
   sudo systemctl enable $SERVICE_NAME.service
 fi
 
-
-########################
-# Sudoer Service
-########################
-IS_OVERWRITE='Y'
-if sudo test -f /etc/sudoers.d/$SERVICE_NAME; then
-  read -p "do you overwrite '/etc/sudoers.d/$SERVICE_NAME ' [Y/N]?" overwrite
-  if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
-    IS_OVERWRITE='Y'
-  else
-    IS_OVERWRITE='N'
-  fi
-fi
-
-if [[ $IS_OVERWRITE == "Y" || $IS_OVERWRITE == "y" ]]; then
-IFS='' read -r -d '' VAR <<"EOF"
-%envoy ALL=(root) /usr/sbin/reboot
-\n%envoy ALL=(root) NOPASSWD: /bin/journalctl -xe
-\n%envoy ALL=(root) NOPASSWD: /bin/systemctl stop VAR_SERVICE_NAME.service,/bin/systemctl start VAR_SERVICE_NAME.service,/bin/systemctl restart VAR_SERVICE_NAME.service,/bin/systemctl status VAR_SERVICE_NAME.service
-\n%envoy ALL=(root) NOPASSWD: /bin/systemctl stop VAR_SERVICE_NAME,/bin/systemctl start VAR_SERVICE_NAME,/bin/systemctl restart VAR_SERVICE_NAME,/bin/systemctl status VAR_SERVICE_NAME
-EOF
-
-  VAR=${VAR//VAR_SERVICE_NAME/${SERVICE_NAME}}
+###################################
+# Sudoers Service
+###################################
+is_overwrite=$(is_overwrite_file_with_sudo /etc/sudoers.d/$SERVICE_NAME)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  SUDOERS_PATH=$SERVICE_SRC_SYSCONFIG_PATH/sudoers.d
+  [ ! -d $SUDOERS_PATH ] && { mkdir -p $SUDOERS_PATH; echo "create new $SUDOERS_PATH"; }
+  
+  SERVICE_NAME=$SERVICE_NAME \
+  SERVICE_GROUP=$USER \
+    envsubst< $SCRIPT_DIR/envoy/envoy.sudoers >  $SUDOERS_PATH/$SERVICE_NAME
   echo "> /etc/sudoers.d/$SERVICE_NAME"
-  echo -e $VAR | sudo tee /etc/sudoers.d/$SERVICE_NAME  > /dev/null
+  sudo cp $SUDOERS_PATH/$SERVICE_NAME /etc/sudoers.d/$SERVICE_NAME
 fi
+
+
+
+
 
