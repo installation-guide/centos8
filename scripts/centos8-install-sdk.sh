@@ -26,8 +26,6 @@ if [ $# -ne 2 ]; then
   exit 1 
 fi
 
-SDK_CONFIG_FILE=$1
-
 
 user_check_sudo
 if [ $? -ne 0 ]; then

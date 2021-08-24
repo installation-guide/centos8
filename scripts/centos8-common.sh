@@ -241,7 +241,7 @@ download_and_extract_package_from_url() {
     echo "Not existed $package_path, download Package"
     curl -L $package_url --output $package_path
   fi
-  #[ ! -d $output ] && { mkdir -p $output; }
+  [ ! -d $output ] && { mkdir -p $output; }
   if [ -f $package_path ]; then
     case $command_type in
       tar-extract)

@@ -58,7 +58,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   echo "Redis Server's existed in $REDIS_SERVER"
   if [ ! -f $REDIS_SRC_PATH ]; then
     ## param: redis path,redis url, output path, command type
-    download_and_extract_package_from_url $SETUP_PATH/$REDIS_SRC_FILE $REDIS_SRC_URL $REDIS_SRC_PATH "tar-extract"
+    download_and_extract_package_from_url $SETUP_PATH/$REDIS_SRC_FILE $REDIS_SRC_URL $SETUP_PATH "tar-extract"
   fi
 
   [ ! -d $REDIS_SRC_PATH ] && { echo "Redis source path not exist"; exit 1; }
