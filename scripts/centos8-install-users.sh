@@ -29,6 +29,9 @@ case $ACTION in
   password)
     users_reset_password $START_LINE $USER_FILE
     ;;
+  group)
+    users_update_groups $START_LINE $USER_FILE
+    ;;
   create)
     echo "args: $START_LINE $USER_FILE"
     init_os_users $START_LINE $USER_FILE

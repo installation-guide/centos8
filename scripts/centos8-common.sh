@@ -96,6 +96,44 @@ function init_os_users() {
   done < "$filename"
 }
 
+function users_update_groups() {
+  if [ $# -ne 2 ]; then
+    echo "${FUNCNAME}($@) - args $#: invalid input param, must be 2 param"
+    echo "${FUNCNAME} <line start> <file name>"
+    return 1
+  fi
+  user_check_sudo
+  if [ $? -ne 0 ]; then
+    echo "please login user with sudo permission"
+    return 1
+  fi
+  line_start=$1
+  filename=$2
+  I=0
+  while IFS= read -r line; do
+    if [ $((I++)) -lt $line_start ]; then
+      continue
+    fi
+    fields=($(echo $line | tr ":" "\n"))
+    if [ ${#fields[*]} -ge 4 ]; then
+      username=${fields[0]}
+      belong_groups=${fields[1]}
+      home_dir=${fields[2]}
+      password=${fields[3]}
+      #echo "[$I] $line"
+      #echo "[$I] ${fields[0]} - ${fields[1]} - ${fields[2]} - ${fields[3]}"
+      grep -qw ^$username /etc/passwd 
+      if [ $? -eq 0 ]; then
+        sudo usermod -G $belong_groups $username
+        #echo echo "[$I] create --group $belong_groups  --home-dir $home_dir $username"
+      else 
+        echo "$username not existed"
+      fi
+    fi
+  done < "$filename"
+}
+
+
 function users_reset_password() {
   if [ $# -ne 2 ]; then
     echo "${FUNCNAME}($@) - args $#: invalid input param, must be 2 param"
