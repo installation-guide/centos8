@@ -359,21 +359,24 @@ if [ ${#REDIS_MODULE_GEAR} -gt 0 ]; then
       echo "install python3_$REDIS_MODULE_GEAR"
       [ -d $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR ] && { rm -rf $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR; echo "existed, just remove $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR"; }
       cp -R $REDIS_MODULE_SRC/bin/linux-x64-release/python3_$REDIS_MODULE_GEAR $REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR
+
       python_interpreter='#!'${REDIS_MODULE_PATH}/python3_$REDIS_MODULE_GEAR/bin/python3.7
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/2to3-3.7"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/easy_install-3.7"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/idle3.7"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pip"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pip3"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pip3.7"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pydoc3.7"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/pyvenv-3.7"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/virtualenv"
-      sed -i "1s|^#\!.*|${python_intepreter}|g" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/wheel"
       export python_path="${REDIS_MODULE_PATH}/python3_$REDIS_MODULE_GEAR"  
-      sed -i "/^prefix=.*/c prefix=\"${python_path}\"" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/bin/python3.7m-config"
-      sed -i "/^prefix=.*/c prefix=\"${python_path}\"" "$REDIS_MODULE_PATH/python3_$REDIS_MODULE_GEAR/lib/pkgconfig/python-3.7.pc"
-      
+      echo "*** ${python_interpreter}"
+      echo "*** ${python_path}"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/2to3-3.7"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/easy_install-3.7"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/idle3.7"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/pip"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/pip3"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/pip3.7"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/pydoc3.7"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/pyvenv-3.7"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/virtualenv"
+      sed -i "/^#!.*/c ${python_interpreter}" "$python_path/bin/wheel"
+
+      sed -i "/^prefix=.*/c prefix=\"${python_path}\"" "$python_path/bin/python3.7m-config"
+      sed -i "/^prefix=.*/c prefix=\"${python_path}\"" "$python_path/lib/pkgconfig/python-3.7.pc"
 
       cp $REDIS_MODULE_SRC/bin/linux-x64-release/redisgears.so $REDIS_MODULE_PATH/redisgears-${REDIS_MODULE_GEAR}.so
       [ -f $REDIS_PLUGGINS/redisgears.so ] && { rm -f $REDIS_PLUGGINS/redisgears.so; }

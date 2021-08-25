@@ -1,0 +1,17 @@
+[Unit]
+Description=Apache Kafka server (zookeeper)
+Documentation=http://kafka.apache.org/documentation.html
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
+EnvironmentFile=${ZOOKEEPER_SYSCONFIG}
+ExecStart=${ZOOKEEPER_SERVER_START} ${ZOOKEEPER_SERVER_CONFIG_FILE}
+ExecStop=${ZOOKEEPER_SERVER_STOP}
+ExecStartPre=/usr/bin/mkdir -p ${KAFKA_TEMP}
+
+[Install]
+WantedBy=multi-user.target

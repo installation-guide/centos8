@@ -353,9 +353,9 @@ is_overwrite_file() {
     echo $IS_OVERWRITE
     return 1
   fi
-  source_file=$1
-  if [ -f $source_file ]; then
-    read -p "do you overwrite '$source_file' [Y/N]? " overwrite
+  source_path=$1
+  if [ -f $source_path -o -d $source_path ]; then
+    read -p "do you overwrite '$source_path' [Y/N]? " overwrite
     if [[ $overwrite == "Y" || $overwrite == "y" ]]; then
       IS_OVERWRITE='Y'
     else
