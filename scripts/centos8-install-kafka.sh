@@ -117,7 +117,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   export KAFKA_SERVER_START=$KAFKA_SERVER_START; \
   export KAFKA_SERVER_STOP=$KAFKA_SERVER_STOP; \
   export KAFKA_SERVER_CONFIG_FILE=$KAFKA_CONFIG_FILE; \
-  export KAFKA_TEMP=$KAFKA_TEMP; \
+  export KAFKA_TEMP=$KAFKA_TEMP/kafka-logs; \
     cat $SCRIPT_DIR/kafka/kafka.service | envsubst '$SERVICE_USER ${SERVICE_GROUP} ${KAFKA_SYSCONFIG} ${KAFKA_SERVER_START} ${KAFKA_SERVER_STOP} ${KAFKA_SERVER_CONFIG_FILE} ${KAFKA_TEMP}' > "$SYSTEMD_PATH/$KAFKA_SERVICE.service"
 
   echo "> /etc/systemd/system/$KAFKA_SERVICE.service"
@@ -139,8 +139,8 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   export ZOOKEEPER_SERVER_START=$ZOOKEEPER_SERVER_START; \
   export ZOOKEEPER_SERVER_STOP=$ZOOKEEPER_SERVER_STOP; \
   export ZOOKEEPER_SERVER_CONFIG_FILE=$ZOOKEEPER_CONFIG_FILE; \
-  export ZOOKEEPER_TEMP=$KAFKA_TEMP; \
-    cat $SCRIPT_DIR/kafka/zookeeper.service | envsubst '$SERVICE_USER ${SERVICE_GROUP}  ${ZOOKEEPER_SYSCONFIG} ${ZOOKEEPER_SERVER_START} ${ZOOKEEPER_SERVER_STOP} ${ZOOKEEPER_SERVER_CONFIG_FILE} ${KAFKA_TEMP}' > "$SYSTEMD_PATH/$ZOOKEEPER_SERVICE.service"
+  export ZOOKEEPER_TEMP=$KAFKA_TEMP/zookeeper; \
+    cat $SCRIPT_DIR/kafka/zookeeper.service | envsubst '$SERVICE_USER ${SERVICE_GROUP}  ${ZOOKEEPER_SYSCONFIG} ${ZOOKEEPER_SERVER_START} ${ZOOKEEPER_SERVER_STOP} ${ZOOKEEPER_SERVER_CONFIG_FILE} ${ZOOKEEPER_TEMP}' > "$SYSTEMD_PATH/$ZOOKEEPER_SERVICE.service"
 
   echo "> /etc/systemd/system/$ZOOKEEPER_SERVICE.service"
   sudo cp $SYSTEMD_PATH/$ZOOKEEPER_SERVICE.service /etc/systemd/system/$ZOOKEEPER_SERVICE.service
@@ -175,3 +175,27 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   echo "> /etc/sudoers.d/$ZOOKEEPER_SERVICE"
   sudo cp $SUDOERS_PATH/$ZOOKEEPER_SERVICE /etc/sudoers.d/$ZOOKEEPER_SERVICE
 fi
+
+###################################
+# Kafka & Zookeeper Configuration
+###################################
+echo
+echo
+if [ -f $ZOOKEEPER_CONFIG_FILE ]; then
+  echo
+  echo "> $ZOOKEEPER_CONFIG_FILE"
+  echo "dataDir=${KAFKA_TEMP}/zookeeper"
+  sed -i "/^dataDir=.*/c dataDir=${KAFKA_TEMP}/zookeeper" $ZOOKEEPER_CONFIG_FILE
+fi
+
+if [ -f $KAFKA_CONFIG_FILE ]; then
+  echo
+  echo "> $KAFKA_CONFIG_FILE"
+  echo "log.dirs=${KAFKA_TEMP}/kafka-logs"
+  sed -i "/^log.dirs=.*/c log.dirs=${KAFKA_TEMP}/kafka-logs" $KAFKA_CONFIG_FILE
+fi
+echo
+echo
+
+
+

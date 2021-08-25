@@ -11,7 +11,7 @@ Group=${SERVICE_GROUP}
 EnvironmentFile=${ZOOKEEPER_SYSCONFIG}
 ExecStart=${ZOOKEEPER_SERVER_START} ${ZOOKEEPER_SERVER_CONFIG_FILE}
 ExecStop=${ZOOKEEPER_SERVER_STOP}
-ExecStartPre=/usr/bin/mkdir -p ${KAFKA_TEMP}
+ExecStartPre=/usr/bin/mkdir -p ${ZOOKEEPER_TEMP}
 
 [Install]
 WantedBy=multi-user.target
