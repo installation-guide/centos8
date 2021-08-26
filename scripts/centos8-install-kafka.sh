@@ -14,6 +14,8 @@ JAVA_HOME=${JAVA_HOME:-/opt/open-jdk-14.0.1}
 SCALA_VERSION=${SCALA_VERSION:-2.12}
 KAFKA_VERSION=${KAFKA_VERSION:-2.5.0}
 KAFKA_ADMIN_PORT=${KAFKA_ADMIN_PORT:-3888}
+KAFKA_PORT=${KAFKA_PORT:-9092}
+ZOOKEEPER_PORT=${ZOOKEEPER_PORT:-2181}
 
 KAFKA_HOME="$HOME/kafka_${SCALA_VERSION}-${KAFKA_VERSION}"
 KAFKA_BIN=$KAFKA_HOME/bin
@@ -186,6 +188,7 @@ if [ -f $ZOOKEEPER_CONFIG_FILE ]; then
   echo "> $ZOOKEEPER_CONFIG_FILE"
   echo "dataDir=${KAFKA_TEMP}/zookeeper"
   sed -i "/^dataDir=.*/c dataDir=${KAFKA_TEMP}/zookeeper" $ZOOKEEPER_CONFIG_FILE
+  sed -i "/^clientPort=.*/c clientPort=${ZOOKEEPER_PORT}" $ZOOKEEPER_CONFIG_FILE
 fi
 
 if [ -f $KAFKA_CONFIG_FILE ]; then
@@ -193,6 +196,14 @@ if [ -f $KAFKA_CONFIG_FILE ]; then
   echo "> $KAFKA_CONFIG_FILE"
   echo "log.dirs=${KAFKA_TEMP}/kafka-logs"
   sed -i "/^log.dirs=.*/c log.dirs=${KAFKA_TEMP}/kafka-logs" $KAFKA_CONFIG_FILE
+  #listeners=PLAINTEXT://:9092
+  sed -i "/^listeners=.*/c listeners=PLAINTEXT://:${KAFKA_PORT}" $KAFKA_CONFIG_FILE
+  sed -i "/^#listeners=.*/c listeners=PLAINTEXT://:${KAFKA_PORT}" $KAFKA_CONFIG_FILE
+  #advertised.listeners=PLAINTEXT://your.host.name:9092
+  sed -i "/^advertised.listeners=.*/c advertised.listeners=PLAINTEXT://$(hostname):${KAFKA_PORT}" $KAFKA_CONFIG_FILE
+  sed -i "/^#advertised.listeners=.*/c advertised.listeners=PLAINTEXT://$(hostname):${KAFKA_PORT}" $KAFKA_CONFIG_FILE
+  
+  sed -i "/^zookeeper.connect=.*/c zookeeper.connect=localhost:${ZOOKEEPER_PORT}" $KAFKA_CONFIG_FILE
 fi
 echo
 echo
