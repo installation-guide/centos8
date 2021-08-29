@@ -95,7 +95,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   export SERVICE_GROUP=$USER; \
   export SERVICE_SYSCONFIG=$SERVICE_SYSCONFIG; \
   export SERVICE_SERVER=$SERVICE_SERVER;\
-  export SERVICE_SERVER_OPTS="realtime --cmd.realtime.spec=${SERVICE_SPEC}";\
+  export SERVICE_SERVER_OPTS="forward --cmd.forward.spec=${SERVICE_SPEC}";\
   export SERVICE_WORKING_FOLDER=$SERVICE_HOME;
     cat $SCRIPT_DIR/grpc/${SERVICE_NAME}.service | envsubst '${SERVICE_DESCRIPTION} ${SERVICE_USER} ${SERVICE_GROUP} ${SERVICE_SYSCONFIG} ${SERVICE_SERVER} ${SERVICE_SERVER_OPTS} ${SERVICE_WORKING_FOLDER}' > "$SERVICE_SRC_SYSTEMD_PATH/$SERVICE_NAME.service"
 
