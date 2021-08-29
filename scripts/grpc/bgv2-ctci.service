@@ -1,0 +1,18 @@
+[Unit]
+Description=${SERVICE_DESCRIPTION}
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
+EnvironmentFile=${SERVICE_SYSCONFIG}
+ExecStart=${SERVICE_SERVER} ${SERVICE_SERVER_OPTS}
+ExecReload=/bin/kill -USR2 $MAINPID
+WorkingDirectory=${SERVICE_WORKING_FOLDER}
+ExecStartPre=/bin/mkdir -p ${SERVICE_WORKING_FOLDER}/logs
+ExecStartPre=/bin/mkdir -p ${SERVICE_WORKING_FOLDER}/data
+Restart=on-failure
+[Install]
+WantedBy=default.target
