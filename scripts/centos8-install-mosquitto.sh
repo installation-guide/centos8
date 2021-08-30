@@ -105,27 +105,27 @@ MOSQUITTO_LOG_FILE=${MOSQUITTO_LOGS}/mosquitto.log
 ###
 #
 ###
-is_overwrite=$(is_overwrite_file $MOSQUITTO_CONF_FILE)
+is_overwrite=$(is_overwrite_file_with_sudo $MOSQUITTO_CONF_FILE)
 if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
 
-  is_overwrite=$(is_overwrite_file $MOSQUITTO_PASSWORD_FILE)
+  is_overwrite=$(is_overwrite_file_with_sudo $MOSQUITTO_PASSWORD_FILE)
   if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
-    MOSQUITTO_SUB_NM_AUTH="mqtt_mbs" \
-    MOSQUITTO_PUB_NM_USER="mqtt_mbs" \
-    MOSQUITTO_APP_USER="mqtt_mbs" \
-    MOSQUITTO_APP_AUTH="" \
-      envsubst< $SCRIPT_DIR/mosquitto/passwd_nm >  $SERVICE_SRC_SYSCONFIG_PATH/mosquitto/passwd_nm
+    export MOSQUITTO_SUB_NM_AUTH="mqtt_mbs"; \
+    export MOSQUITTO_PUB_NM_USER="mqtt_mbs"; \
+    export MOSQUITTO_APP_USER="mqtt_mbs"; \
+    export MOSQUITTO_APP_AUTH="mqtt_mbs"; \
+      envsubst< $SCRIPT_DIR/mosquitto/passwd_nm >  $SERVICE_SRC_SYSCONFIG_PATH/passwd_nm
     echo "Create/Overwrite $MOSQUITTO_PASSWORD_FILE"
-    sudo cp $SERVICE_SRC_SYSCONFIG_PATH/mosquitto/passwd_nm $MOSQUITTO_PASSWORD_FILE
+    sudo cp $SERVICE_SRC_SYSCONFIG_PATH/passwd_nm $MOSQUITTO_PASSWORD_FILE
   fi
 
   sudo chown -R $USER ${MOSQUITTO_CONF} && sudo chmod -R +rx ${MOSQUITTO_CONF}
-    USER=$USER \
-    MOSQUITTO_PASSWORD_FILE=$MOSQUITTO_PASSWORD_FILE \
-    MOSQUITTO_LOG_FILE=$MOSQUITTO_LOG_FILE \
-      envsubst< $SCRIPT_DIR/mosquitto/mosquitto.conf >  $SERVICE_SRC_SYSCONFIG_PATH/mosquitto/mosquitto.conf
+  export USER=$USER; \
+  export MOSQUITTO_PASSWORD_FILE=$MOSQUITTO_PASSWORD_FILE; \
+  export MOSQUITTO_LOG_FILE=$MOSQUITTO_LOG_FILE; \
+    envsubst< $SCRIPT_DIR/mosquitto/mosquitto.conf >  $SERVICE_SRC_SYSCONFIG_PATH/mosquitto.conf
   echo "Create/Overwrite $MOSQUITTO_CONF_FILE"
-  sudo cp $SERVICE_SRC_SYSCONFIG_PATH/mosquitto/mosquitto.conf $MOSQUITTO_CONF_FILE
+  sudo cp $SERVICE_SRC_SYSCONFIG_PATH/mosquitto.conf $MOSQUITTO_CONF_FILE
 fi
 
 ###################################
