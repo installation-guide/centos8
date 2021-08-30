@@ -13,9 +13,8 @@ source "$SCRIPT_DIR/centos8-common.sh"
 
 
 SERVICE_VERSION=${SERVICE_VERSION:-"latest"}
-SERVICE_NAME=${SERVICE_NAME:-"events-service"}
-SERVICE_PORT=${SERVICE_PORT:-"9000"}
-SERVICE_USE_TLS=${SERVICE_USE_TLS:-"false"}
+SERVICE_NAME=${SERVICE_NAME:-"events-publisher"}
+SERVICE_DESCRIPTION=${SERVICE_DESCRIPTION:-}
 
 
 SERVICE_HOME="$HOME/productions/marketdata/${SERVICE_NAME}"
@@ -32,6 +31,7 @@ SERVICE_SERVER=$SERVICE_BIN/$SERVICE_NAME
 [ ! -d $SERVICE_APP ] && { mkdir -p $SERVICE_APP; echo "create $SERVICE_APP"; }
 [ ! -d $SERVICE_CONF ] && { mkdir -p $SERVICE_CONF; echo "create $SERVICE_CONF"; }
 [ ! -d $SERVICE_DATA ] && { mkdir -p $SERVICE_DATA; echo "create $SERVICE_DATA"; }
+[ ! -d $SERVICE_LOGS ] && { mkdir -p $SERVICE_LOGS; echo "create $SERVICE_LOGS"; }
 [ ! -d $SERVICE_SCRIPTS ] && { mkdir -p $SERVICE_SCRIPTS; echo "create $SERVICE_SCRIPTS"; }
 
 user_check_sudo
@@ -49,7 +49,6 @@ echo "TLS Enable: $SERVICE_USE_TLS"
 ## check process running
 pgrep -x ${SERVICE_NAME} >/dev/null && { echo "$SERVICE_NAME is Running, please stop service before re-install"; exit; }
 
-exit 0
 
 ###################################
 # Sysconfig Service
@@ -69,14 +68,11 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   [ ! -d $SERVICE_SRC_SYSCONFIG_PATH ] && { mkdir -p $SERVICE_SRC_SYSCONFIG_PATH; echo "create new $SERVICE_SRC_SYSCONFIG_PATH"; }
   ###
   export SERVICE_CPUS=$(($(nproc --all) -1)); \
-  export SERVICE_CACHE_TYPE="redis";\
-  export SERVICE_PORT=${SERVICE_PORT};\
-  export SERVICE_USE_TLS=${SERVICE_USE_TLS};\
   export SERVICE_WORKING_FOLDER=${SERVICE_HOME};\
-    envsubst< $SCRIPT_DIR/grpc/$SERVICE_NAME.sysconfig '${SERVICE_CPUS} ${SERVICE_CACHE_TYPE} ${SERVICE_PORT} ${SERVICE_USE_TLS} ${SERVICE_WORKING_FOLDER}'>  "$SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
+    envsubst< $SCRIPT_DIR/grpc/$SERVICE_NAME.sysconfig '${SERVICE_CPUS} ${SERVICE_WORKING_FOLDER}'>  "$SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
 
   echo "> $SERVICE_SYSCONFIG"
-  #sudo cp $SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig $SERVICE_SYSCONFIG
+  sudo cp $SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig $SERVICE_SYSCONFIG
 fi
 
 ###################################
@@ -89,20 +85,20 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   SERVICE_SRC_SYSTEMD_PATH=$SERVICE_SRC_ETC_PATH/systemd/system
   [ ! -d $SERVICE_SRC_SYSTEMD_PATH ] && { mkdir -p $SERVICE_SRC_SYSTEMD_PATH; echo "create new $SERVICE_SRC_SYSTEMD_PATH"; }
   ###
-  export SERVICE_DESCRIPTION="Event Service - Market gRPC API" ;\
+  export SERVICE_DESCRIPTION=${SERVICE_DESCRIPTION};\
   export SERVICE_USER=$USER; \
   export SERVICE_GROUP=$USER; \
   export SERVICE_SYSCONFIG=$SERVICE_SYSCONFIG; \
   export SERVICE_SERVER=$SERVICE_SERVER;\
-  export SERVICE_SERVER_OPTS="grpc --cmd.grpc.cache.type=redis";\
+  export SERVICE_SERVER_OPTS="mqtt";\
   export SERVICE_WORKING_FOLDER=$SERVICE_HOME;
     cat $SCRIPT_DIR/grpc/${SERVICE_NAME}.service | envsubst '${SERVICE_DESCRIPTION} ${SERVICE_USER} ${SERVICE_GROUP} ${SERVICE_SYSCONFIG} ${SERVICE_SERVER} ${SERVICE_SERVER_OPTS} ${SERVICE_WORKING_FOLDER}' > "$SERVICE_SRC_SYSTEMD_PATH/$SERVICE_NAME.service"
 
   echo "> $SERVICE_SYSTEMD"
-  #sudo cp $SERVICE_SRC_SYSTEMD_PATH/$SERVICE_NAME.service $SERVICE_SYSTEMD
+  sudo cp $SERVICE_SRC_SYSTEMD_PATH/$SERVICE_NAME.service $SERVICE_SYSTEMD
 
   echo "> Enable $SERVICE_NAME.service"
-  #sudo systemctl enable $KAFKA_SERVICE.service
+  sudo systemctl enable $SERVICE_NAME.service
 fi
 
 
@@ -119,18 +115,36 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   SERVICE_GROUP=$USER \
     envsubst< $SCRIPT_DIR/grpc/$SERVICE_NAME.sudoers >  $SERVICE_SRC_SUDOERS_PATH/$SERVICE_NAME
   echo "> $SERVICE_SUDOERS"
-  #sudo cp $SERVICE_SRC_SUDOERS_PATH/$SERVICE_NAME $SERVICE_SUDOERS
+  sudo cp $SERVICE_SRC_SUDOERS_PATH/$SERVICE_NAME $SERVICE_SUDOERS
 fi
 
 ###################################
-# Service Configuration
+# Service Configuration 
+###################################
+SERVICE_DEPLOY_SCRIPT=$SERVICE_SCRIPTS/deploy_service.sh
+is_overwrite=$(is_overwrite_file $SERVICE_DEPLOY_SCRIPT)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  SERVICE_SRC_DEPLOY_SCRIPT_PATH=$SERVICE_SRC_ETC_PATH/scripts
+  [ ! -d $SERVICE_SRC_DEPLOY_SCRIPT_PATH ] && { mkdir -p $SERVICE_SRC_DEPLOY_SCRIPT_PATH; echo "create new $SERVICE_SRC_DEPLOY_SCRIPT_PATH"; }
+  
+  SERVICE_WORKING_DIR=$SERVICE_HOME \
+  SERVICE_NAME=$SERVICE_NAME \
+    envsubst< $SCRIPT_DIR/grpc/deploy_service.sh '${SERVICE_WORKING_DIR} ${SERVICE_NAME}' >  $SERVICE_SRC_DEPLOY_SCRIPT_PATH/deploy_service.sh
+  echo "> $SERVICE_SRC_DEPLOY_SCRIPT_PATH"
+  cp $SERVICE_SRC_DEPLOY_SCRIPT_PATH/deploy_service.sh $SERVICE_DEPLOY_SCRIPT && chmod +x $SERVICE_DEPLOY_SCRIPT 
+fi
+
+###################################
+# Service Information
 ###################################
 echo
 echo
-echo ""
+echo "==== Service Information ===="
 echo "$SERVICE_SYSCONFIG"
 echo "$SERVICE_SYSTEMD"
 echo "$SERVICE_SUDOERS"
-echo
+echo "Home Dir = $SERVICE_HOME"
+echo "Service Deploy Dir = $SERVICE_HOME/app"
+echo "Service Config Dir = $SERVICE_HOME/config"
 echo
 
