@@ -138,6 +138,10 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   cp $SERVICE_SRC_DEPLOY_SCRIPT_PATH/deploy_service.sh $SERVICE_DEPLOY_SCRIPT && chmod +x $SERVICE_DEPLOY_SCRIPT 
 fi
 
+echo "firewalld allow port $SERVICE_PORT"
+fw_permanent_add_tcp_port $SERVICE_PORT
+
+
 ###################################
 # Service Information
 ###################################
