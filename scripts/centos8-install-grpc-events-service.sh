@@ -140,6 +140,7 @@ fi
 
 echo "firewalld allow port $SERVICE_PORT"
 fw_permanent_add_tcp_port $SERVICE_PORT
+fw_reload_service
 
 
 ###################################

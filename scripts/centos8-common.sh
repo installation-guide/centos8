@@ -395,15 +395,19 @@ is_overwrite_file_with_sudo() {
 ##########
 ## 
 ##########
+fw_reload_service() {
+  sudo firewall-cmd --reload
+}
+
 fw_permanent_add_tcp_port() {
   if [ $# -eq 0 ]; then
     echo "${FUNCNAME}($@) - args $#: invalid input param"
     return 1
   fi
   list_ports=$@
-  for port in $list_ports 
-    sudo firewall-cmd --zone=public --add-port=$port/tcp --permanent
+  for port in $list_ports
   do
+    sudo firewall-cmd --zone=public --add-port=$port/tcp --permanent
   done
   return 0
 }
@@ -415,8 +419,9 @@ fw_permanent_remove_tcp_port() {
   fi
   list_ports=$@
   for port in $list_ports 
-    sudo firewall-cmd --zone=public --remove-port=$port/tcp --permanent
   do
+    sudo firewall-cmd --zone=public --remove-port=$port/tcp --permanent
   done
+
   return 0
 }
