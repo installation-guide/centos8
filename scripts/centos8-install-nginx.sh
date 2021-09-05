@@ -24,6 +24,7 @@ NGINX_CONF=$NGINX_HOME/conf
 NGINX_LOGS=$NGINX_HOME/logs
 
 SERVICE_NAME=nginx
+SERVICE_CONF_FILE=$NGINX_CONF/nginx-multi-sites.conf
 
 user_check_sudo
 if [ $? -ne 0 ]; then
@@ -109,7 +110,8 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   [ ! -d $SYSCONFIG_PATH ] && { mkdir -p $SYSCONFIG_PATH; echo "create new $SYSCONFIG_PATH"; }
   ###
   NGINX_HOME=$NGINX_HOME \
-    envsubst< $SCRIPT_DIR/nginx/$SERVICE_NAME.sysconfig '$NGINX_HOME'>  "$SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
+  SERVICE_CONF_FILE=$SERVICE_CONF_FILE \
+    envsubst< $SCRIPT_DIR/nginx/$SERVICE_NAME.sysconfig '$NGINX_HOME $SERVICE_CONF_FILE'>  "$SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
 
   echo "> $SERVICE_SYSCONFIG"
   sudo cp $SYSCONFIG_PATH/$SERVICE_NAME.sysconfig $SERVICE_SYSCONFIG
@@ -155,6 +157,25 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   sudo cp $SUDOERS_PATH/$SERVICE_NAME.sudoers $SERVICE_SUDOER
 fi
 
+###################################
+# Configuration Service
+###################################
+[ ! -d ${NGINX_CONF}/sites-enabled ] && { mkdir -p ${NGINX_CONF}/sites-enabled; echo "create new ${NGINX_CONF}/sites-enabled"; }
+[ ! -d ${NGINX_CONF}/sites-availables ] && { mkdir -p ${NGINX_CONF}/sites-availables; echo "create new ${NGINX_CONF}/sites-availables"; }
+
+is_overwrite=$(is_overwrite_file $SERVICE_CONF_FILE)
+if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
+  CONF_PATH=$SERVICE_SRC_SYSCONFIG_PATH
+  [ ! -d $CONF_PATH ] && { mkdir -p $CONF_PATH; echo "create new $CONF_PATH"; }
+  
+  export SERVICE_NAME=$SERVICE_NAME; \
+  export SERVICE_USER=$USER; \
+  export SERVICE_GROUP=$USER; \
+  export SERVICE_HOME=${NGINX_HOME}; \
+    envsubst< $SCRIPT_DIR/nginx/$SERVICE_NAME.conf '${SERVICE_USER} ${SERVICE_HOME}'>  $CONF_PATH/$SERVICE_NAME.conf
+  echo "> /$SERVICE_CONF_FILE"
+  cp $CONF_PATH/$SERVICE_NAME.conf $SERVICE_CONF_FILE
+fi
 
 exit 1
 
