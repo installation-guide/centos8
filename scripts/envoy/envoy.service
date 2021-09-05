@@ -11,6 +11,7 @@ Group=${SERVICE_GROUP}
 EnvironmentFile=${ENVOY_SYSCONFIG}
 ExecStart=${ENVOY_SERVER} -c ${ENVOY_CONFIG_FILE} --log-path ${ENVOY_LOGGING_ACCESS_FILE}
 Restart=on-failure
+WorkingDirectory=${SERVICE_WORKING_FOLDER}
 ExecStartPre=/usr/bin/touch ${ENVOY_LOGGING_ACCESS_FILE}
 ExecStartPre=/usr/bin/mkdir -p ${ENOVY_HOME_DIR}
 ExecStartPre=/usr/bin/mkdir -p ${ENVOY_LOG_DIR}

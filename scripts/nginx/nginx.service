@@ -1,20 +1,21 @@
 [Unit]
-Description= Cloud-native high-performance edge/middle/service proxy (Envoy)
-Documentation=https://www.envoyproxy.io
-Requires=network.target remote-fs.target
-After=network.target remote-fs.target
+Description=The NGINX HTTP and reverse proxy server
+After=syslog.target network.target remote-fs.target nss-lookup.target
 
 [Service]
-Type=simple
-User=root
-Group=${SERVICE_GROUP}
-EnvironmentFile=${ENVOY_SYSCONFIG}
-ExecStart=${ENVOY_SERVER} -c ${ENVOY_CONFIG_FILE} --log-path ${ENVOY_LOGGING_ACCESS_FILE}
+Type=forking
 Restart=on-failure
-ExecStartPre=/usr/bin/touch ${ENVOY_LOGGING_ACCESS_FILE}
-ExecStartPre=/usr/bin/mkdir -p ${ENOVY_HOME_DIR}
-ExecStartPre=/usr/bin/mkdir -p ${ENVOY_LOG_DIR}
-ExecStartPre=/usr/bin/mkdir -p ${ENVOY_DATA_DIR}
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
+EnvironmentFile=${SERVICE_SYSCONFIG}
+PIDFile=${SERVICE_PIDFILE}
+ExecStartPre=${SERVICE_SERVER} -t
+ExecStart=${SERVICE_SERVER} -c ${NGINX_CONFIG_FILE}
+ExecReload=${SERVICE_SERVER} -s reload
+ExecStop=/bin/kill -s QUIT $MAINPID
+PrivateTmp=true
+LimitNOFILE=102642
+WorkingDirectory=${SERVICE_WORKING_FOLDER}
 
 [Install]
 WantedBy=multi-user.target
