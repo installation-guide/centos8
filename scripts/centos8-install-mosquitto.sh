@@ -54,6 +54,8 @@ pgrep -x mosquitto >/dev/null && { echo "mosquitto is Running, please stop servi
 #install_package_from_repo make openssl-devel c-ares-devel libuuid-devel libcurl-devel
 #sudo dnf --enablerepo=powertools install libuv-devel
 #install_package_from_repo libwebsockets libwebsockets-devel
+sudo dnf --enablerepo=powertools -y install libuv-devel
+install_package_from_repo openssl-devel c-ares-devel libuuid-devel libcurl-devel libwebsockets libwebsockets-devel
 
 #SETUP_PATH=$HOME/setups
 CJSON_GIT_URL="https://github.com/DaveGamble/cJSON.git "
