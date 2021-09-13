@@ -114,7 +114,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   export ENVOY_SYSCONFIG=$ENVOY_SYSCONFIG; \
   export ENVOY_LOGS=$ENVOY_LOGS; \
   export SERVICE_WORKING_FOLDER=$ENVOY_HOME; \
-    cat $SCRIPT_DIR/envoy/envoy.service | envsubst '$SERVICE_USER ${SERVICE_GROUP} ${ENVOY_SERVER} ${ENVOY_SYSCONFIG} ${ENVOY_LOGS} ${SERVICE_WORKING_FOLDER} > "$SYSTEMD_PATH/$SERVICE_NAME.service"
+    cat $SCRIPT_DIR/envoy/envoy.service | envsubst '$SERVICE_USER ${SERVICE_GROUP} ${ENVOY_SERVER} ${ENVOY_SYSCONFIG} ${ENVOY_LOGS} ${SERVICE_WORKING_FOLDER}' > "$SYSTEMD_PATH/$SERVICE_NAME.service"
 
   echo "> /etc/systemd/system/$SERVICE_NAME.service"
   sudo cp $SYSTEMD_PATH/$SERVICE_NAME.service /etc/systemd/system/$SERVICE_NAME.service
