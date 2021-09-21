@@ -14,7 +14,6 @@ source "$SCRIPT_DIR/centos8-common.sh"
 
 SERVICE_VERSION=${SERVICE_VERSION:-"latest"}
 SERVICE_NAME=${SERVICE_NAME:-"events-notify"}
-SERVICE_SPEC=${SERVICE_SPEC:-}
 SERVICE_DESCRIPTION=${SERVICE_DESCRIPTION:-}
 
 
@@ -43,13 +42,9 @@ fi
 ###################################
 # Download & Build Redis Source
 ###################################
-echo "$SERVICE_NAME:$SERVICE_VERSION:$SERVICE_SPEC"
+echo "$SERVICE_NAME:$SERVICE_VERSION"
 echo "TLS Enable: $SERVICE_USE_TLS"
 
-if [ ${#SERVICE_SPEC} -eq 0 ]; then
-  echo "Service spec is not empty, must be ctci, or infogate"
-  exit 1;
-fi
 ## check process running
 pgrep -x ${SERVICE_NAME} >/dev/null && { echo "$SERVICE_NAME is Running, please stop service before re-install"; exit 1; }
 
@@ -72,9 +67,8 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   [ ! -d $SERVICE_SRC_SYSCONFIG_PATH ] && { mkdir -p $SERVICE_SRC_SYSCONFIG_PATH; echo "create new $SERVICE_SRC_SYSCONFIG_PATH"; }
   ###
   export SERVICE_CPUS=$(($(nproc --all) -1)); \
-  export SERVICE_SPEC=${SERVICE_SPEC};\
   export SERVICE_WORKING_FOLDER=${SERVICE_HOME};\
-    envsubst< $SCRIPT_DIR/grpc/$SERVICE_NAME.sysconfig '${SERVICE_CPUS} ${SERVICE_SPEC} ${SERVICE_WORKING_FOLDER}'>  "$SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
+    envsubst< $SCRIPT_DIR/grpc/$SERVICE_NAME.sysconfig '${SERVICE_CPUS} ${SERVICE_WORKING_FOLDER}'>  "$SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
 
   echo "> $SERVICE_SYSCONFIG"
   sudo cp $SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig $SERVICE_SYSCONFIG
@@ -95,7 +89,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   export SERVICE_GROUP=$USER; \
   export SERVICE_SYSCONFIG=$SERVICE_SYSCONFIG; \
   export SERVICE_SERVER=$SERVICE_SERVER;\
-  export SERVICE_SERVER_OPTS="forward --cmd.forward.spec=${SERVICE_SPEC}";\
+  export SERVICE_SERVER_OPTS="notify";\
   export SERVICE_WORKING_FOLDER=$SERVICE_HOME;
     cat $SCRIPT_DIR/grpc/${SERVICE_NAME}.service | envsubst '${SERVICE_DESCRIPTION} ${SERVICE_USER} ${SERVICE_GROUP} ${SERVICE_SYSCONFIG} ${SERVICE_SERVER} ${SERVICE_SERVER_OPTS} ${SERVICE_WORKING_FOLDER}' > "$SERVICE_SRC_SYSTEMD_PATH/$SERVICE_NAME.service"
 
