@@ -1,7 +1,8 @@
 [Unit]
 Description=${SERVICE_DESCRIPTION}
-Requires=network.target remote-fs.target
-After=network.target remote-fs.target
+Requires=network.target remote-fs.target rsyslog.service redis.service
+Wants=rsyslog.service network.target remote-fs.target nss-lookup.target redis.service
+After=rsyslog.service network.target remote-fs.target nss-lookup.target redis.service
 
 [Service]
 Type=simple
@@ -14,5 +15,7 @@ WorkingDirectory=${SERVICE_WORKING_FOLDER}
 ExecStartPre=/bin/mkdir -p ${SERVICE_WORKING_FOLDER}/logs
 ExecStartPre=/bin/mkdir -p ${SERVICE_WORKING_FOLDER}/data
 Restart=on-failure
+
+RestartSec=1s
 [Install]
 WantedBy=default.target
