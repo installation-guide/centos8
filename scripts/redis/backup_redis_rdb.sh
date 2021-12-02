@@ -5,7 +5,7 @@
 ## redis-backup.sh <wait>
 
 ## Redis is very data backup friendly since you can copy RDB files while the database is running: the RDB is never modified once       produced, and while it gets produced it uses a temporary name and is renamed into its final destination atomically using rename(2)     only when the new snapshot is complete.
-
+ 
 # Scripts & Files
  
 ## using command: ACL GETUSER admin
@@ -23,17 +23,22 @@ TEMP_PATH=${TEMP_PATH:-"/app/redis/v6.2.5/tmp"}
 TEMP_FILE_NAME="redis_${REDIS_PORT}_dump_$(date +%Y%m%d).tar.gz"
 TEMP_DB_FILE="$TEMP_PATH/$TEMP_FILE_NAME"
 
+#BACKUP_DIR=${BACKUP_DIR:-"/app/redis/v6.2.5/archived"}
 BACKUP_DIR=${BACKUP_DIR:-"/app/redis/v6.2.5/archived"}
 BACKUP_FILE="$BACKUP_DIR/$TEMP_FILE_NAME"
 
+[ -d "/backup" ] && { BACKUP_DIR="/backup/archived/$(hostname)";}
+
 test -d $BACKUP_DIR || {
- echo "[$REDIS_PORT] Create backup directory $BACKUP_DIR" && mkdir -p $BACKUP_DIR
+ echo "[$REDIS_PORT] Create backup directory $BACKUP_DIR" && mkdir -p $BACKUP_DIR || { echo "couldn't make folder $BACKUP_DIR"; exit 1; }
+ 
 }
 
 test -d $TEMP_PATH || {
  echo "[$REDIS_PORT] Create temp directory $TEMP_PATH" && mkdir -p $TEMP_PATH
 }
 
+echo "backup dir: $BACKUP_DIR"
 CLI="$REDIS_CLI -p $REDIS_PORT"
 if [ ! -f $BACKUP_FILE ]; then
   # perform a bgsave before copy
