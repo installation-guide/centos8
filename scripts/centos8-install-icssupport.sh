@@ -73,7 +73,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   ###
   export JAVA_CMD=$JAVA_CMD; \
   export SERVICE_WORKING_FOLDER=${SERVICE_HOME};\
-    envsubst< $SCRIPT_DIR/nav/$SERVICE_NAME.sysconfig '${JAVA_CMD} ${SERVICE_WORKING_FOLDER}'>  "$SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
+    envsubst< $SCRIPT_DIR/ics/$SERVICE_NAME.sysconfig '${JAVA_CMD} ${SERVICE_WORKING_FOLDER}'>  "$SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig"
   echo "> $SERVICE_SYSCONFIG"
   sudo cp $SERVICE_SRC_SYSCONFIG_PATH/$SERVICE_NAME.sysconfig $SERVICE_SYSCONFIG
 fi
@@ -116,7 +116,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   
   SERVICE_NAME=$SERVICE_NAME \
   SERVICE_GROUP=$USER \
-    envsubst< $SCRIPT_DIR/nav/$SERVICE_NAME.sudoers >  $SERVICE_SRC_SUDOERS_PATH/$SERVICE_NAME
+    envsubst< $SCRIPT_DIR/ics/$SERVICE_NAME.sudoers >  $SERVICE_SRC_SUDOERS_PATH/$SERVICE_NAME
   echo "> $SERVICE_SUDOERS"
   sudo cp $SERVICE_SRC_SUDOERS_PATH/$SERVICE_NAME $SERVICE_SUDOERS
 fi
@@ -132,7 +132,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
 
   SERVICE_WORKING_DIR=$SERVICE_HOME \
   SERVICE_NAME=$SERVICE_NAME \
-    envsubst< $SCRIPT_DIR/nav/deploy_service.sh '${SERVICE_WORKING_DIR} ${SERVICE_NAME}' >  $SERVICE_SRC_DEPLOY_SCRIPT_PATH/deploy_service.sh
+    envsubst< $SCRIPT_DIR/ics/deploy_service.sh '${SERVICE_WORKING_DIR} ${SERVICE_NAME}' >  $SERVICE_SRC_DEPLOY_SCRIPT_PATH/deploy_service.sh
   echo "> $SERVICE_SRC_DEPLOY_SCRIPT_PATH"
   cp $SERVICE_SRC_DEPLOY_SCRIPT_PATH/deploy_service.sh $SERVICE_DEPLOY_SCRIPT && chmod +x $SERVICE_DEPLOY_SCRIPT 
 fi

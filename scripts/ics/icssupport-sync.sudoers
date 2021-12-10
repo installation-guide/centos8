@@ -1,4 +1,0 @@
-%${SERVICE_GROUP} ALL=(root) /usr/sbin/reboot
-%${SERVICE_GROUP} ALL=(root) NOPASSWD: /bin/journalctl -xe
-%${SERVICE_GROUP} ALL=(root) NOPASSWD: /bin/systemctl stop ${SERVICE_NAME}.service,/bin/systemctl start ${SERVICE_NAME}.service,/bin/systemctl restart ${SERVICE_NAME}.service,/bin/systemctl status ${SERVICE_NAME}.service
-%${SERVICE_GROUP} ALL=(root) NOPASSWD: /bin/systemctl stop ${SERVICE_NAME},/bin/systemctl start ${SERVICE_NAME},/bin/systemctl restart ${SERVICE_NAME},/bin/systemctl status ${SERVICE_NAME}

@@ -1,10 +1,8 @@
 JAVA_CMD=${JAVA_CMD}
-CLASSPATH=libs/*:bin/nav-structure
+CLASSPATH=libs/*:bin/icssupport
 JAVA_OPTS=-Xms256M -Xmx512M
 VERTX_OPTS="-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory -Dvertx.disableFileCPResolving=true -Dvertx.cacheDirBase=."
 
 LOG_OPTS="-Dlogback.configurationFile=config/logback.xml"
 CONFIG_OPTS="-Dconf=config/service.json"
 MAIN_CLASS=com.mbs.pericles.service.icssupport.IcsSupportVerticle
-
-
