@@ -1,0 +1,15 @@
+[Unit]
+Description= ${SERVICE_DESCRIPTION}
+Requires=network.target remote-fs.target
+After=network.target remote-fs.target
+
+[Service]
+Type=simple
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
+EnvironmentFile=${SERVICE_SYSCONFIG}
+ExecStart=/opt/open-jdk-14.0.1/bin/java $JAVA_OPTS $JAEGER_OPTS $VERTX_OPTS $CONFIG_OPTS $LOG_OPTS -cp ${CLASSPATH} $MAIN_CLASS
+#Restart=on-failure
+WorkingDirectory=${SERVICE_WORKING_FOLDER}
+[Install]
+WantedBy=multi-user.target

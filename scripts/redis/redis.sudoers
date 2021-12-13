@@ -1,0 +1,4 @@
+%redis ALL=(root) /usr/sbin/reboot
+%redis ALL=(root) NOPASSWD: /bin/journalctl -xe
+%redis ALL=(root) NOPASSWD: /bin/systemctl stop ${SERVICE_NAME}.service,/bin/systemctl start ${SERVICE_NAME}.service,/bin/systemctl restart ${SERVICE_NAME}.service,/bin/systemctl status ${SERVICE_NAME}.service
+%redis ALL=(root) NOPASSWD: /bin/systemctl stop ${SERVICE_NAME},/bin/systemctl start ${SERVICE_NAME},/bin/systemctl restart ${SERVICE_NAME},/bin/systemctl status ${SERVICE_NAME}

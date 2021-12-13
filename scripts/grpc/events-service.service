@@ -1,0 +1,21 @@
+[Unit]
+Description=${SERVICE_DESCRIPTION}
+Requires=network.target remote-fs.target rsyslog.service redis.service
+Wants=rsyslog.service network.target remote-fs.target nss-lookup.target redis.service
+After=rsyslog.service network.target remote-fs.target nss-lookup.target redis.service
+
+[Service]
+Type=simple
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
+EnvironmentFile=${SERVICE_SYSCONFIG}
+ExecStart=${SERVICE_SERVER} ${SERVICE_SERVER_OPTS}
+ExecReload=/bin/kill -USR2 $MAINPID
+WorkingDirectory=${SERVICE_WORKING_FOLDER}
+ExecStartPre=/bin/mkdir -p ${SERVICE_WORKING_FOLDER}/logs
+ExecStartPre=/bin/mkdir -p ${SERVICE_WORKING_FOLDER}/data
+Restart=on-failure
+
+RestartSec=1s
+[Install]
+WantedBy=default.target

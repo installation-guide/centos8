@@ -1,0 +1,95 @@
+[redis@mbs-redis-webapp11 bin]$ ./redis-benchmark -n 1000000 -t set,get -P 16 -q
+Could not connect to Redis at 127.0.0.1:6379: Connection refused
+WARN: could not fetch server CONFIG
+^C
+[redis@mbs-redis-webapp11 bin]$ ./redis-benchmark -p 1379 -a NrVSaYEuee8QKo -n 1000000 -t set,get -P 16 -q
+SET: 900090.06 requests per second, p50=0.759 msec                    
+GET: 1432664.75 requests per second, p50=0.407 msec                     
+
+[redis@mbs-redis-webapp11 bin]$ ./redis-benchmark -p 1379 -a NrVSaYEuee8QKo -n 1000000 -q                 
+PING_INLINE: 100775.97 requests per second, p50=0.255 msec                    
+PING_MBULK: 100120.15 requests per second, p50=0.255 msec                    
+SET: 103842.16 requests per second, p50=0.247 msec                    
+GET: 102679.95 requests per second, p50=0.255 msec                    
+INCR: 103007.83 requests per second, p50=0.255 msec                    
+LPUSH: 102564.10 requests per second, p50=0.247 msec                    
+RPUSH: 102891.24 requests per second, p50=0.247 msec                    
+LPOP: 102743.25 requests per second, p50=0.247 msec                    
+RPOP: 104482.29 requests per second, p50=0.247 msec                    
+SADD: 103007.83 requests per second, p50=0.255 msec                    
+HSET: 104504.12 requests per second, p50=0.247 msec                    
+SPOP: 102312.26 requests per second, p50=0.247 msec                    
+ZADD: 104515.05 requests per second, p50=0.247 msec                    
+ZPOPMIN: 105097.21 requests per second, p50=0.247 msec                    
+LPUSH (needed to benchmark LRANGE): 102501.03 requests per second, p50=0.255 msec                    
+LRANGE_100 (first 100 elements): 55202.87 requests per second, p50=0.471 msec                   
+LRANGE_300 (first 300 elements): 20205.29 requests per second, p50=1.279 msec                   
+LRANGE_500 (first 500 elements): 13290.98 requests per second, p50=1.951 msec                   
+LRANGE_600 (first 600 elements): 11521.93 requests per second, p50=2.255 msec                   
+MSET (10 keys): 106564.37 requests per second, p50=0.367 msec                    
+
+[redis@mbs-redis-webapp11 bin]$ ./redis-benchmark -p 1379 -a NrVSaYEuee8QKo -n 1000000 -q -c 2000
+PING_INLINE: 91759.96 requests per second, p50=11.767 msec                     
+PING_MBULK: 89229.95 requests per second, p50=12.215 msec                    
+SET: 90505.93 requests per second, p50=11.799 msec                     
+GET: 91008.38 requests per second, p50=11.991 msec                    
+INCR: 91274.19 requests per second, p50=11.703 msec                     
+LPUSH: 91793.65 requests per second, p50=11.783 msec                    
+RPUSH: 92064.07 requests per second, p50=11.847 msec                    
+LPOP: 92644.06 requests per second, p50=11.727 msec                    
+RPOP: 92997.30 requests per second, p50=11.743 msec                    
+SADD: 92182.89 requests per second, p50=11.847 msec                    
+HSET: 89469.45 requests per second, p50=12.015 msec                     
+SPOP: 90612.54 requests per second, p50=12.039 msec                     
+ZADD: 89968.52 requests per second, p50=12.039 msec                    
+ZPOPMIN: 92216.90 requests per second, p50=11.855 msec                     
+LPUSH (needed to benchmark LRANGE): 91116.17 requests per second, p50=11.879 msec                    
+LRANGE_100 (first 100 elements): 48473.10 requests per second, p50=21.407 msec                    
+LRANGE_300 (first 300 elements): 18591.16 requests per second, p50=54.879 msec                    
+LRANGE_500 (first 500 elements): 12156.58 requests per second, p50=82.623 msec                     
+LRANGE_600 (first 600 elements): 10356.58 requests per second, p50=96.511 msec                     
+MSET (10 keys): 87138.38 requests per second, p50=14.279 msec                    
+
+[redis@mbs-redis-webapp11 bin]$ ./redis-benchmark -p 1379 -a NrVSaYEuee8QKo -n 1000000 -q -c 1000
+PING_INLINE: 103412.62 requests per second, p50=5.343 msec                    
+PING_MBULK: 101255.56 requests per second, p50=5.527 msec                    
+SET: 98736.17 requests per second, p50=5.711 msec                    
+GET: 95840.52 requests per second, p50=5.487 msec                     
+INCR: 100391.52 requests per second, p50=5.311 msec                    
+LPUSH: 100441.94 requests per second, p50=5.447 msec                    
+RPUSH: 101595.04 requests per second, p50=5.479 msec                    
+LPOP: 100644.12 requests per second, p50=5.407 msec                    
+RPOP: 98561.01 requests per second, p50=5.535 msec                     
+SADD: 98106.55 requests per second, p50=5.439 msec                     
+HSET: 98425.20 requests per second, p50=5.583 msec                     
+SPOP: 98716.68 requests per second, p50=5.383 msec                     
+ZADD: 98502.76 requests per second, p50=5.511 msec                     
+ZPOPMIN: 98193.24 requests per second, p50=5.287 msec                     
+LPUSH (needed to benchmark LRANGE): 101916.02 requests per second, p50=5.607 msec                    
+LRANGE_100 (first 100 elements): 53376.03 requests per second, p50=10.167 msec                    
+LRANGE_300 (first 300 elements): 19911.99 requests per second, p50=26.447 msec                    
+LRANGE_500 (first 500 elements): 12756.57 requests per second, p50=40.159 msec                    
+LRANGE_600 (first 600 elements): 10943.19 requests per second, p50=46.559 msec                    
+MSET (10 keys): 98775.20 requests per second, p50=5.063 msec                    
+
+[redis@mbs-redis-webapp11 bin]$ ./redis-benchmark -p 1379 -a NrVSaYEuee8QKo -n 1000000 -q -c 500
+PING_INLINE: 103530.38 requests per second, p50=2.527 msec                    
+PING_MBULK: 103231.13 requests per second, p50=2.559 msec                    
+SET: 103755.97 requests per second, p50=2.551 msec                    
+GET: 103455.41 requests per second, p50=2.519 msec                    
+INCR: 105318.59 requests per second, p50=2.615 msec                    
+LPUSH: 104427.73 requests per second, p50=2.567 msec                    
+RPUSH: 102564.10 requests per second, p50=2.591 msec                    
+LPOP: 103487.53 requests per second, p50=2.639 msec                    
+RPOP: 101142.91 requests per second, p50=2.559 msec                    
+SADD: 103971.72 requests per second, p50=2.479 msec                    
+HSET: 105674.73 requests per second, p50=2.615 msec                    
+SPOP: 106292.52 requests per second, p50=2.615 msec                    
+ZADD: 105274.24 requests per second, p50=2.511 msec                    
+ZPOPMIN: 103863.73 requests per second, p50=2.527 msec                    
+LPUSH (needed to benchmark LRANGE): 105019.95 requests per second, p50=2.471 msec                    
+LRANGE_100 (first 100 elements): 54421.77 requests per second, p50=5.015 msec                   
+LRANGE_300 (first 300 elements): 19436.35 requests per second, p50=13.695 msec                    
+LRANGE_500 (first 500 elements): 13092.26 requests per second, p50=20.031 msec                    
+LRANGE_600 (first 600 elements): 11149.27 requests per second, p50=23.023 msec                    
+MSET (10 keys): 101214.57 requests per second, p50=2.511 msec                    

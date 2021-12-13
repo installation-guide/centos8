@@ -1,0 +1,22 @@
+[Unit]
+Description=Redis data structure server
+After=rsyslog.service network.target remote-fs.target nss-lookup.target
+
+[Service]
+EnvironmentFile=/etc/sysconfig/redis
+ExecStart=${REDIS_SERVER} ${REDIS_CONF_FILE}
+Restart=on-failure
+LimitNOFILE=102642
+NoNewPrivileges=yes
+Type=simple
+UMask=0077
+User=redis
+Group=redis
+WorkingDirectory=${REDIS_HOME}
+ExecStartPre=/bin/mkdir -p ${REDIS_RUN}
+ExecStartPre=/bin/mkdir -p ${REDIS_DATA}
+ExecStartPre=/bin/mkdir -p ${REDIS_LOGS}
+
+[Install]
+WantedBy=multi-user.target
+
