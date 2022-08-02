@@ -1,15 +1,19 @@
 [Unit]
-Description=Keycloak 19.0.1 Application Server
+Description=Keycloak ${SERVICE_VERSION} Application Server
 After=syslog.target network.target
 Before=httpd.service
 
 [Service]
+Type=simple
+User=${SERVICE_USER}
+Group=${SERVICE_GROUP}
 LimitNOFILE=102642
-EnvironmentFile=/etc/sysconfig/keycloak
-PIDFile=/var/run/wildfly/kc18.pid
-ExecStart=/app/keycloak/keycloak-19.0.1/bin/kc.sh start -b -Djgroups.mcast_addr=${MULTICAST_ADDRESS} 
+EnvironmentFile=${SERVICE_SYSCONFIG}
+PIDFile=/var/run/wildfly/kc19.pid
+ExecStart=/app/keycloak/keycloak-${SERVICE_VERSION}/bin/kc.sh start -b -Djgroups.mcast_addr=${MULTICAST_ADDRESS}
+ExecStartPre=/usr/bin/mkdir -p ${SERVICE_LOGS} 
 #--db-password=${KC_DB_PASSWORD} --db-username=${KC_DB_USERNAME}
-WorkingDirectory=/app/keycloak/keycloak-19.0.1
+WorkingDirectory=/app/keycloak/keycloak-${SERVICE_VERSION}
 StandardOutput=null
 
 [Install]

@@ -1,0 +1,3 @@
+%keycloak ALL=(root) NOPASSWD: /bin/journalctl -xe
+%keycloak ALL=(root) NOPASSWD: /bin/systemctl stop keycloak.service,/bin/systemctl start keycloak.service,/bin/systemctl restart keycloak.service,/bin/systemctl status keycloak.service
+%keycloak ALL=(root) NOPASSWD: /bin/systemctl stop keycloak,/bin/systemctl start keycloak,/bin/systemctl restart keycloak,/bin/systemctl status keycloak
