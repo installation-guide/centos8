@@ -134,6 +134,7 @@ if [[ $is_overwrite == "Y" || $is_overwrite == "y" ]]; then
   export SERVICE_VERSION=$SERVICE_VERSION; \
   export SERVICE_LOGS=$SERVICE_LOGS; \
   export SERVICE_CONF=$SERVICE_CONF; \
+  export SERVICE_PORT=$SERVICE_PORT; \
       cat $SCRIPT_DIR/$SERVICE_NAME/$SERVICE_NAME.conf | envsubst '$SERVICE_VERSION $SERVICE_CONF $SERVICE_LOGS' > "$TEMP_CONF_PATH/$SERVICE_NAME.conf"
 
   echo "> $SERVICE_CONF/$SERVICE_NAME.conf"
