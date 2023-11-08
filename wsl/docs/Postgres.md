@@ -63,6 +63,7 @@ Useful commands:
 * \l lists all databases. Works from any database.
 * \dt lists all tables in the current database.
 * \c <db name> switch to a different database
+* \dus list users
 
 ```bash
 psql mydb
@@ -74,6 +75,16 @@ mydb=# \dt
 mydb=# \c <db name>
 ```
 
+## 3. Python Environment
 
-## 3. Links
+```bash
+sudo apt install postgresql postgresql-contrib  
+
+sudo apt install -y libpq-dev python3-dev python3-pip python3-psycopg2
+pip3 install psycopg2
+pip3 install psycopg2-binary
+```
+
+
+##  Links
 [1. Install and use Postgres in WSL](https://dev.to/sfpear/install-and-use-postgres-in-wsl-423d)
